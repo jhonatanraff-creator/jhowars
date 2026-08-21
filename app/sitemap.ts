@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
-import { projects } from "@/data/projects";
+import { getProjects } from "@/lib/project-content";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const projects=await getProjects();
   const baseUrl = "https://jhowars.com";
   const pages = ["", "/work", "/about", "/contact"].map((path) => ({
     url: `${baseUrl}${path}`,

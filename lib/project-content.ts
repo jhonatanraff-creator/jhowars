@@ -1,7 +1,7 @@
 import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { MediaOrientation, Project, ProjectImage } from "@/data/projects";
+import { projects as projectDefaults, type MediaOrientation, type Project, type ProjectImage } from "@/data/projects";
 
 export type ContentFrontmatter = { title:string; slug:string; year:string; category:string; summary:string };
 export type ContentSection = { kind:"intro"|"section"|"closing"; title:string; paragraphs:string[] };
@@ -9,6 +9,8 @@ export type ProjectContent = { frontmatter:ContentFrontmatter; sections:ContentS
 
 const imagePattern=/\.(avif|gif|jpe?g|png|webp)$/i;
 const ignoredPattern=/(^|\/)(\.|__MACOSX)|thumbs\.db|\.ds_store/i;
+const artRoot=path.join(process.cwd(),"public","art");
+const naturalSorter=new Intl.Collator(undefined,{numeric:true,sensitivity:"base"});
 
 function parseFrontmatter(source:string){
   const match=source.match(/^---\s*\n([\s\S]*?)\n---\s*\n?/);
@@ -38,11 +40,28 @@ export async function readProjectContent(project:Project){
   return parseProjectContent(await fs.readFile(file,"utf8"));
 }
 
+/** Build the catalogue from real folders; content.md marks publishable projects. */
+export async function getProjects():Promise<Project[]>{
+  const entries=await fs.readdir(artRoot,{withFileTypes:true});
+  const folders=entries.filter((entry)=>entry.isDirectory()&&!entry.name.startsWith(".")).map((entry)=>entry.name).sort(naturalSorter.compare);
+  const discovered=await Promise.all(folders.map(async(artFolder)=>{
+    try{
+      const content=parseProjectContent(await fs.readFile(path.join(artRoot,artFolder,"content.md"),"utf8"));
+      const configured=projectDefaults.find((project)=>project.artFolder===artFolder);
+      return {...(configured??{technique:content.frontmatter.category,description:content.frontmatter.summary,images:[],featured:true,orientation:"portrait" as const,layout:"offset" as const,tone:"ink" as const}),slug:content.frontmatter.slug,title:content.frontmatter.title,year:content.frontmatter.year,category:content.frontmatter.category,description:content.frontmatter.summary,artFolder,contentPath:`/art/${artFolder}/content.md`} satisfies Project;
+    }catch(error){if((error as NodeJS.ErrnoException).code==="ENOENT")return null;throw error;}
+  }));
+  return discovered.filter((project):project is Project=>project!==null);
+}
+
+export async function getProject(slug:string){return (await getProjects()).find((project)=>project.slug===slug);}
+export async function getNextProject(slug:string){const projects=await getProjects();const index=projects.findIndex((project)=>project.slug===slug);return index<0?undefined:projects[(index+1)%projects.length];}
+
 function orientationFor(name:string):MediaOrientation{ return /wide|landscape|horizontal/i.test(name)?"landscape":/square/i.test(name)?"square":"portrait"; }
 export async function getProjectImages(project:Project):Promise<ProjectImage[]>{
   const directory=path.join(process.cwd(),"public","art",project.artFolder);
   let files:string[]=[]; try{ files=await fs.readdir(directory); }catch{return project.images;}
-  const discovered=files.filter((file)=>imagePattern.test(file)&&!ignoredPattern.test(file)).sort().map((file)=>({src:`/art/${project.artFolder}/${file}`,orientation:orientationFor(file)}));
+  const discovered=files.filter((file)=>imagePattern.test(file)&&!ignoredPattern.test(file)).sort(naturalSorter.compare).map((file)=>({src:`/art/${project.artFolder}/${file}`,orientation:orientationFor(file)}));
   return discovered.length?discovered:project.images;
 }
 

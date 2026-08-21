@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
+import { randomInt } from "node:crypto";
 import { FeaturedProjects } from "@/components/featured-projects";
-import { projects } from "@/data/projects";
-import { getHomeCandidates, readProjectContent } from "@/lib/project-content";
+import { getHomeCandidates, getProjects, readProjectContent } from "@/lib/project-content";
 
 export default async function Home() {
   noStore();
-  const featured=projects.filter((project)=>project.featured);
+  const featured=(await getProjects()).filter((project)=>project.featured);
   const items=await Promise.all(featured.map(async(project,index)=>{
     const [images,content]=await Promise.all([getHomeCandidates(project),readProjectContent(project)]);
-    const image=images.length?images[Math.floor(Math.random()*images.length)]:undefined;
+    const image=images.length?images[randomInt(images.length)]:undefined;
     return {project,image,summary:content.frontmatter.summary,number:index+1};
   }));
   return (
