@@ -1,8 +1,17 @@
 import Link from "next/link";
-import { ProjectCard } from "@/components/project-card";
+import { unstable_noStore as noStore } from "next/cache";
+import { FeaturedProjects } from "@/components/featured-projects";
 import { projects } from "@/data/projects";
+import { getHomeCandidates, readProjectContent } from "@/lib/project-content";
 
-export default function Home() {
+export default async function Home() {
+  noStore();
+  const featured=projects.filter((project)=>project.featured);
+  const items=await Promise.all(featured.map(async(project,index)=>{
+    const [images,content]=await Promise.all([getHomeCandidates(project),readProjectContent(project)]);
+    const image=images.length?images[Math.floor(Math.random()*images.length)]:undefined;
+    return {project,image,summary:content.frontmatter.summary,number:index+1};
+  }));
   return (
     <>
       <section className="home-opening page-shell" aria-labelledby="opening-title">
@@ -16,9 +25,7 @@ export default function Home() {
           <h2>Selected Work</h2>
           <span>2023—2026</span>
         </div>
-        <div className="featured-grid">
-          {projects.filter((project) => project.featured).map((project, index) => <ProjectCard key={project.slug} project={project} index={index} />)}
-        </div>
+        <FeaturedProjects items={items}/>
         <Link href="/work" className="text-link">Ver todos os projetos <span>↗</span></Link>
       </section>
 
