@@ -9,7 +9,7 @@ export default function WorkPage() {
     <div className="page-shell listing-page">
       <header className="page-intro">
         <p className="eyebrow">Arquivo de trabalhos</p>
-        <h1>Work<span>({String(projects.length).padStart(2, "0")})</span></h1>
+        <h1>Arquivo<span>({String(projects.length).padStart(2, "0")})</span></h1>
         <p>Uma seleção de projetos autorais, séries, impressos e colaborações visuais.</p>
       </header>
       <div className="work-grid">
