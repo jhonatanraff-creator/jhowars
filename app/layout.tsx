@@ -3,6 +3,7 @@ import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { MotionLayer } from "@/components/motion-layer";
 import { PageMotion } from "@/components/page-motion";
+import { UiPreferences } from "@/components/ui-preferences";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,11 +18,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
+      <head><script dangerouslySetInnerHTML={{__html:`(()=>{const saved=localStorage.getItem("jhowars-theme");const theme=saved==="light"||saved==="dark"?saved:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=theme})()`}} /></head>
       <body id="top">
-        <Header />
-        <MotionLayer />
-        <main><PageMotion>{children}</PageMotion></main>
-        <Footer />
+        <UiPreferences>
+          <Header />
+          <MotionLayer />
+          <main><PageMotion>{children}</PageMotion></main>
+          <Footer />
+        </UiPreferences>
       </body>
     </html>
   );

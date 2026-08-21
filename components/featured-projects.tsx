@@ -5,10 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import { ArtworkMedia } from "@/components/artwork-media";
 import { ProjectCardButton } from "@/components/project-card";
 import type { Project } from "@/data/projects";
+import { useUiPreferences } from "@/components/ui-preferences";
 
-type FeaturedProject = { project:Project; image?:string; summary:string; number:number };
+type FeaturedProject = { project:Project; selectedImage?:string; summary:string; number:number };
 
 export function FeaturedProjects({items}:{items:FeaturedProject[]}){
+  const {t}=useUiPreferences();
   const [active,setActive]=useState<FeaturedProject|null>(null);
   const dialog=useRef<HTMLDivElement>(null);
   const opener=useRef<HTMLElement|null>(null);
@@ -35,17 +37,17 @@ export function FeaturedProjects({items}:{items:FeaturedProject[]}){
   },[active]);
 
   return <>
-    <div className="featured-grid">{items.map((item,index)=><ProjectCardButton key={item.project.slug} project={item.project} index={index} image={item.image} onOpen={()=>open(item)}/>)}</div>
+    <div className="featured-grid">{items.map((item,index)=><ProjectCardButton key={item.project.slug} project={item.project} index={index} image={item.selectedImage} onOpen={()=>open(item)}/>)}</div>
     {active&&<div className="project-modal-backdrop" onMouseDown={(event)=>{if(event.target===event.currentTarget)close();}}>
       <div className="project-modal" ref={dialog} role="dialog" aria-modal="true" aria-labelledby="project-modal-title" aria-describedby="project-modal-summary">
-        <button className="modal-close" type="button" onClick={close} aria-label="Fechar apresentação">×</button>
-        <div className={`modal-image tone-${active.project.tone}`}><ArtworkMedia src={active.image} project={active.project.title} position="Home" orientation={active.project.orientation} alt={`Obra da série ${active.project.title}`} sizes="(max-width: 760px) 94vw, 60vw"/></div>
+        <button className="modal-close" type="button" onClick={close} aria-label={t("close")}>×</button>
+        <div className={`modal-image tone-${active.project.tone}`}><ArtworkMedia src={active.selectedImage} project={active.project.title} position="Home" orientation={active.project.orientation} alt={`Obra da série ${active.project.title}`} sizes="(max-width: 760px) 94vw, 60vw"/></div>
         <div className="modal-content">
           <p className="project-index">{String(active.number).padStart(2,"0")} / {String(items.length).padStart(2,"0")}</p>
           <h2 id="project-modal-title">{active.project.title}</h2>
           <p className="modal-meta">{active.project.year}<br/>{active.project.category}<br/>{active.project.technique}</p>
           <p id="project-modal-summary" className="modal-summary">{active.summary}</p>
-          <Link href={`/work/${active.project.slug}`} className="modal-cta">Ver projeto completo <span>→</span></Link>
+          <Link href={`/work/${active.project.slug}`} className="modal-cta">{t("viewFullProject")} <span>→</span></Link>
         </div>
       </div>
     </div>}
