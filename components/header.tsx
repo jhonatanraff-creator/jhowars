@@ -4,14 +4,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { usePreferences } from "@/components/preferences";
 
 const links = [
-  { href: "/work", label: "Work" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
+  { href: "/work", label: "work" },
+  { href: "/about", label: "about" },
+  { href: "/contact", label: "contact" },
 ];
 
 export function Header() {
+  const {locale,theme,setLocale,setTheme,t}=usePreferences();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [compact, setCompact] = useState(false);
@@ -42,9 +44,13 @@ export function Header() {
             className={pathname.startsWith(link.href) ? "active" : ""}
             onClick={() => setOpen(false)}
           >
-            {link.label}
+            {t(link.label as "work"|"about"|"contact")}
           </Link>
         ))}
+        <div className="header-controls">
+          <button type="button" onClick={()=>setLocale(locale==="pt"?"en":"pt")} aria-label="Change language"><b>{locale.toUpperCase()}</b> / {locale==="pt"?"EN":"PT"}</button>
+          <button type="button" onClick={()=>setTheme(theme==="light"?"dark":"light")} aria-label="Change color theme"><b>{theme.toUpperCase()}</b> / {theme==="light"?"DARK":"LIGHT"}</button>
+        </div>
       </nav>
     </header>
   );

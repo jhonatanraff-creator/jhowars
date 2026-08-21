@@ -5,7 +5,7 @@ import path from "node:path";
 import { projects as projectDefaults, type MediaOrientation, type Project, type ProjectImage } from "@/data/projects";
 
 export type ContentFrontmatter = { title:string; slug:string; year:string; category:string; summary:string };
-export type ContentSection = { kind:"intro"|"section"|"closing"; title:string; paragraphs:string[] };
+export type ContentSection = { kind:"intro"|"section"|"closing"; title:string; paragraphs:string[]; afterImage?:number };
 export type ProjectContent = { frontmatter:ContentFrontmatter; sections:ContentSection[] };
 
 const imagePattern=/\.(avif|gif|jpe?g|png|webp)$/i;
@@ -36,8 +36,10 @@ export function parseProjectContent(source:string):ProjectContent{
   return {frontmatter,sections};
 }
 
-export async function readProjectContent(project:Project){
-  const file=path.join(process.cwd(),"public",project.contentPath.replace(/^\/art\//,"art/"));
+export async function readProjectContent(project:Project,locale?:"pt"|"en"){
+  const fallback=path.join(process.cwd(),"public",project.contentPath.replace(/^\/art\//,"art/"));
+  const localized=locale?fallback.replace(/content\.md$/,`content.${locale}.md`):fallback;
+  const file=locale&&existsSync(localized)?localized:fallback;
   return parseProjectContent(await fs.readFile(file,"utf8"));
 }
 

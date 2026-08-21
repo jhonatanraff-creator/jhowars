@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import type { MediaOrientation } from "@/data/projects";
 
 type ArtworkMediaProps = {
@@ -17,12 +16,13 @@ export function ArtworkMedia({ src, project, position, orientation, alt, sizes, 
   return (
     <div className={`artwork-media media-${orientation}`}>
       {src ? (
-        <Image
-          src={src!}
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
           alt={alt}
-          fill
-          sizes={sizes}
-          priority={priority}
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
+          data-sizes={sizes}
         />
       ) : (
         <div className="artwork-placeholder" role="img" aria-label={`${project}, imagem ${position}, ${orientation}`}>

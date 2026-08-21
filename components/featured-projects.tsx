@@ -5,10 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import { ArtworkMedia } from "@/components/artwork-media";
 import { ProjectCardButton } from "@/components/project-card";
 import type { Project } from "@/data/projects";
+import { usePreferences } from "@/components/preferences";
 
 type FeaturedProject = { project:Project; selectedImage?:string; summary:string; number:number };
 
 export function FeaturedProjects({items}:{items:FeaturedProject[]}){
+  const {t}=usePreferences();
   const [active,setActive]=useState<FeaturedProject|null>(null);
   const dialog=useRef<HTMLDivElement>(null);
   const opener=useRef<HTMLElement|null>(null);
@@ -45,7 +47,7 @@ export function FeaturedProjects({items}:{items:FeaturedProject[]}){
           <h2 id="project-modal-title">{active.project.title}</h2>
           <p className="modal-meta">{active.project.year}<br/>{active.project.category}<br/>{active.project.technique}</p>
           <p id="project-modal-summary" className="modal-summary">{active.summary}</p>
-          <Link href={`/work/${active.project.slug}`} className="modal-cta">Ver projeto completo <span>→</span></Link>
+          <Link href={`/work/${active.project.slug}`} className="modal-cta" onClick={close}>{t("viewFullProject")} <span>→</span></Link>
         </div>
       </div>
     </div>}
