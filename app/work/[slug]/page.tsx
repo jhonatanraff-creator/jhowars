@@ -1,53 +1,50 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getNextProject, getProject, projects } from "@/data/projects";
 import { ArtworkMedia } from "@/components/artwork-media";
+import { getNextProject, getProject, projects } from "@/data/projects";
+import { getProjectImages, readProjectContent, type ContentSection } from "@/lib/project-content";
 
-export function generateStaticParams() { return projects.map(({ slug }) => ({ slug })); }
-
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const project = getProject((await params).slug);
-  if (!project) return {};
-  return { title: project.title, description: project.description };
+export function generateStaticParams(){return projects.map(({slug})=>({slug}));}
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
+  const project=getProject((await params).slug); if(!project)return{};
+  const content=await readProjectContent(project);
+  return {title:content.frontmatter.title,description:content.frontmatter.summary};
 }
 
-export default async function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
-  const project = getProject((await params).slug);
-  if (!project) notFound();
-  const next = getNextProject(project.slug);
-  const number = projects.findIndex(({ slug }) => slug === project.slug) + 1;
+function EditorialText({section}:{section:ContentSection}){
+  if(!section.paragraphs.length)return null;
+  return <section className={`editorial-text editorial-${section.kind} page-shell`} data-reveal>
+    <p className="eyebrow">{section.kind==="intro"?"Sobre o projeto":section.kind==="closing"?"Closing":section.title}</p>
+    <div>{section.kind==="section"&&<h2>{section.title}</h2>}{section.paragraphs.map((paragraph,index)=><p key={index}>{paragraph}</p>)}</div>
+  </section>;
+}
 
-  return (
-    <article className="project-page">
-      <header className="project-hero page-shell" data-reveal="stagger">
-        <Link href="/work" className="back-link">← Todos os projetos</Link>
-        <p className="project-index">{String(number).padStart(2, "0")} / {String(projects.length).padStart(2, "0")} <span>{project.year}</span></p>
-        <h1>{project.title}</h1>
-        <div className="project-tags"><span>{project.category}</span><span>{project.technique}</span><span>Brasil</span></div>
-      </header>
-      <div className={`project-cover tone-${project.tone}`} data-reveal="image-up" data-parallax>
-        <ArtworkMedia src={project.cover} project={project.title} position="Cover" orientation={project.orientation} alt={`Capa do projeto ${project.title}`} priority sizes="100vw" />
-      </div>
-      <section className="project-description page-shell" data-reveal>
-        <p className="eyebrow">Sobre o projeto</p>
-        <p>{project.description}</p>
-      </section>
-      <section className="gallery page-shell" aria-label={`Galeria de ${project.title}`}>
-        {project.images.map((image, index) => (
-          <figure key={`${image.src}-${index}`} className={`gallery-item gallery-${index + 1} gallery-${image.orientation} tone-${project.tone}`} data-reveal={index % 2 ? "image-left" : "image-up"}>
-            <ArtworkMedia src={image.src} project={project.title} position={String(index + 1).padStart(2, "0")} orientation={image.orientation} alt={`${project.title}, imagem ${index + 1}`} sizes="(max-width: 768px) 100vw, 70vw" />
-            <figcaption>{String(index + 1).padStart(2, "0")} / {String(project.images.length).padStart(2, "0")}</figcaption>
-          </figure>
-        ))}
-      </section>
-      <section className="process page-shell" data-reveal>
-        <p className="eyebrow">Processo</p>
-        <p>Pesquisa, desenho e experimentação material. Cada etapa preserva os acidentes, as marcas da mão e as decisões que deram forma ao trabalho.</p>
-      </section>
-      <Link href={`/work/${next.slug}`} className="next-project" data-cursor-project data-reveal="clip-left">
-        <span>Next project · {String((number % projects.length) + 1).padStart(2, "0")}</span><strong>{next.title}</strong><span className="next-arrow">↗</span>
-      </Link>
-    </article>
-  );
+export default async function ProjectPage({params}:{params:Promise<{slug:string}>}){
+  const project=getProject((await params).slug); if(!project)notFound();
+  const [content,images]=await Promise.all([readProjectContent(project),getProjectImages(project)]);
+  const next=getNextProject(project.slug),number=projects.findIndex(({slug})=>slug===project.slug)+1;
+  const hero=images[0]; const gallery=images.slice(1); const sections=content.sections;
+  const imageGroups=sections.length?sections.map((_,index)=>gallery.filter((__,imageIndex)=>imageIndex%sections.length===index)):[];
+  return <article className="project-page">
+    <header className="project-hero page-shell" data-reveal="stagger">
+      <Link href="/work" className="back-link">← Todos os projetos</Link>
+      <p className="project-index">{String(number).padStart(2,"0")} / {String(projects.length).padStart(2,"0")} <span>{content.frontmatter.year}</span></p>
+      <h1>{content.frontmatter.title}</h1>
+      <div className="project-tags"><span>{content.frontmatter.category}</span><span>{project.technique}</span><span>Brasil</span></div>
+    </header>
+    <div className={`project-cover tone-${project.tone}`} data-reveal="image-up">
+      <ArtworkMedia src={hero?.src} project={project.title} position="Cover" orientation={hero?.orientation??project.orientation} alt={`Capa do projeto ${project.title}`} priority sizes="100vw"/>
+    </div>
+    {sections.map((section,sectionIndex)=><div className="editorial-block" key={`${section.title}-${sectionIndex}`}>
+      <EditorialText section={section}/>
+      {imageGroups[sectionIndex]?.length>0&&<section className="gallery page-shell" aria-label={`Galeria de ${project.title}`}>
+        {imageGroups[sectionIndex].map((image,index)=><figure key={image.src} className={`gallery-item gallery-${image.orientation} tone-${project.tone}`} data-reveal={index%2?"image-left":"image-up"}>
+          <ArtworkMedia src={image.src} project={project.title} position={String(index+2).padStart(2,"0")} orientation={image.orientation} alt={`${project.title}, imagem ${index+2}`} sizes="(max-width: 768px) 100vw, 70vw"/>
+          <figcaption>{String(index+2).padStart(2,"0")} / {String(images.length).padStart(2,"0")}</figcaption>
+        </figure>)}
+      </section>}
+    </div>)}
+    <Link href={`/work/${next.slug}`} className="next-project" data-cursor-project data-reveal="clip-left"><span>Next project · {String((number%projects.length)+1).padStart(2,"0")}</span><strong>{next.title}</strong><span className="next-arrow">↗</span></Link>
+  </article>;
 }
