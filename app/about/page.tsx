@@ -11,7 +11,7 @@ export default function AboutPage() {
       </header>
       <div className="about-grid">
         <div className="portrait-placeholder" role="img" aria-label="Espaço reservado para retrato de Jhow.Ars" data-reveal="image-up">
-          <span>Espaço para<br />retrato do artista</span><i />
+          <span><b>Artist portrait</b><br />Placeholder<br />Portrait</span><i aria-hidden="true">gesto</i>
         </div>
         <div className="about-copy" data-reveal="stagger">
           <p>Artista visual, ilustrador e designer, desenvolve uma prática atravessada por pintura, desenho, gravura, objetos e projetos gráficos.</p>

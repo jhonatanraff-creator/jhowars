@@ -53,7 +53,7 @@ export function MotionLayer() {
       const target = event.target as HTMLElement;
       const project = target.closest("[data-cursor-project]");
       const link = target.closest("a,button");
-      setCursorLabel(project ? "VER PROJETO" : "");
+      setCursorLabel(project ? "VER ↗" : "");
       dot.current?.classList.toggle("cursor-project", Boolean(project));
       dot.current?.classList.toggle("cursor-link", Boolean(link && !project));
     };
