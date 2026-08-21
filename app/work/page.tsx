@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { ProjectCard } from "@/components/project-card";
-import { projects } from "@/data/projects";
+import { getProjectImages, getProjects } from "@/lib/project-content";
 
 export const metadata: Metadata = { title: "Work", description: "Projetos selecionados de Jhow.Ars." };
 
-export default function WorkPage() {
+export default async function WorkPage() {
+  const projects=await getProjects();
+  const covers=await Promise.all(projects.map(async(project)=>(await getProjectImages(project))[0]?.src));
   return (
     <div className="page-shell listing-page">
       <header className="page-intro">
@@ -13,7 +15,7 @@ export default function WorkPage() {
         <p>Uma seleção de projetos autorais, séries, impressos e colaborações visuais.</p>
       </header>
       <div className="work-grid">
-        {projects.map((project, index) => <ProjectCard key={project.slug} project={project} index={index} />)}
+        {projects.map((project, index) => <ProjectCard key={project.slug} project={project} index={index} image={covers[index]} />)}
       </div>
     </div>
   );

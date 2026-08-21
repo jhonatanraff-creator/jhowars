@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArtworkMedia } from "@/components/artwork-media";
-import { getNextProject, getProject, projects } from "@/data/projects";
-import { getProjectImages, readProjectContent, type ContentSection } from "@/lib/project-content";
+import { getNextProject, getProject, getProjectImages, getProjects, readProjectContent, type ContentSection } from "@/lib/project-content";
 
-export function generateStaticParams(){return projects.map(({slug})=>({slug}));}
+export async function generateStaticParams(){return (await getProjects()).map(({slug})=>({slug}));}
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
-  const project=getProject((await params).slug); if(!project)return{};
+  const project=await getProject((await params).slug); if(!project)return{};
   const content=await readProjectContent(project);
   return {title:content.frontmatter.title,description:content.frontmatter.summary};
 }
@@ -21,9 +20,10 @@ function EditorialText({section}:{section:ContentSection}){
 }
 
 export default async function ProjectPage({params}:{params:Promise<{slug:string}>}){
-  const project=getProject((await params).slug); if(!project)notFound();
+  const project=await getProject((await params).slug); if(!project)notFound();
+  const projects=await getProjects();
   const [content,images]=await Promise.all([readProjectContent(project),getProjectImages(project)]);
-  const next=getNextProject(project.slug),number=projects.findIndex(({slug})=>slug===project.slug)+1;
+  const next=await getNextProject(project.slug),number=projects.findIndex(({slug})=>slug===project.slug)+1;
   const hero=images[0]; const gallery=images.slice(1); const sections=content.sections;
   const imageGroups=sections.length?sections.map((_,index)=>gallery.filter((__,imageIndex)=>imageIndex%sections.length===index)):[];
   return <article className="project-page">
@@ -45,6 +45,6 @@ export default async function ProjectPage({params}:{params:Promise<{slug:string}
         </figure>)}
       </section>}
     </div>)}
-    <Link href={`/work/${next.slug}`} className="next-project" data-cursor-project data-reveal="clip-left"><span>Next project · {String((number%projects.length)+1).padStart(2,"0")}</span><strong>{next.title}</strong><span className="next-arrow">↗</span></Link>
+    {next&&<Link href={`/work/${next.slug}`} className="next-project" data-cursor-project data-reveal="clip-left"><span>Next project · {String((number%projects.length)+1).padStart(2,"0")}</span><strong>{next.title}</strong><span className="next-arrow">↗</span></Link>}
   </article>;
 }

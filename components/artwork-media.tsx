@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
 import type { MediaOrientation } from "@/data/projects";
 
 type ArtworkMediaProps = {
@@ -15,19 +14,15 @@ type ArtworkMediaProps = {
 };
 
 export function ArtworkMedia({ src, project, position, orientation, alt, sizes, priority }: ArtworkMediaProps) {
-  const [failedSource, setFailedSource] = useState<string>();
-  const hasImage = Boolean(src && failedSource !== src);
-
   return (
     <div className={`artwork-media media-${orientation}`}>
-      {hasImage ? (
+      {src ? (
         <Image
           src={src!}
           alt={alt}
           fill
           sizes={sizes}
           priority={priority}
-          onError={() => setFailedSource(src)}
         />
       ) : (
         <div className="artwork-placeholder" role="img" aria-label={`${project}, imagem ${position}, ${orientation}`}>
