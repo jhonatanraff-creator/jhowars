@@ -9,10 +9,11 @@ export default async function Home() {
   noStore();
   const projects=await getProjects();
   const imagesByProject=await Promise.all(projects.map(getProjectImages));
+  const imagesBySlug=new Map(projects.map((project,index)=>[project.slug,imagesByProject[index]]));
   logProjectDiagnostics("HOME",projects,imagesByProject);
-  const featured=projects.filter((project)=>project.featured);
-  const items=await Promise.all(featured.map(async(project,index)=>{
-    const projectImages=imagesByProject[projects.indexOf(project)]??[];
+  const featuredProjects=projects.filter((project)=>project.featured);
+  const items=await Promise.all(featuredProjects.map(async(project,index)=>{
+    const projectImages=imagesBySlug.get(project.slug)??[];
     const configuredCandidates=project.homeImages?.filter(publicImageExists)??[];
     const candidates=configuredCandidates.length?configuredCandidates:projectImages.map(({src})=>src);
     const selectedImage=candidates.length?candidates[randomInt(candidates.length)]:selectProjectImage(project,projectImages);

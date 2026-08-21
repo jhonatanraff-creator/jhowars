@@ -36,8 +36,10 @@ export function FeaturedProjects({items}:{items:FeaturedProject[]}){
     return()=>{cancelAnimationFrame(frame);document.removeEventListener("keydown",onKey);document.body.style.overflow=previousOverflow;opener.current?.focus();};
   },[active]);
 
+  const cards=items.map((item,index)=><ProjectCardButton key={item.project.slug} project={item.project} index={index} image={item.selectedImage} onOpen={()=>open(item)}/>);
+
   return <>
-    <div className="featured-grid">{items.map((item,index)=><ProjectCardButton key={item.project.slug} project={item.project} index={index} image={item.selectedImage} onOpen={()=>open(item)}/>)}</div>
+    <div className="featured-grid">{cards}</div>
     {active&&<div className="project-modal-backdrop" onMouseDown={(event)=>{if(event.target===event.currentTarget)close();}}>
       <div className="project-modal" ref={dialog} role="dialog" aria-modal="true" aria-labelledby="project-modal-title" aria-describedby="project-modal-summary">
         <button className="modal-close" type="button" onClick={close} aria-label={t("close")}>×</button>

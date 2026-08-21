@@ -9,7 +9,7 @@ export default async function WorkPage() {
   const projects=await getProjects();
   const imagesByProject=await Promise.all(projects.map(getProjectImages));
   logProjectDiagnostics("WORK",projects,imagesByProject);
-  const selectedImages=projects.map((project,index)=>selectProjectImage(project,imagesByProject[index]));
+  const items=projects.map((project,index)=>({project,selectedImage:selectProjectImage(project,imagesByProject[index])}));
   return (
     <div className="page-shell listing-page">
       <header className="page-intro">
@@ -18,7 +18,7 @@ export default async function WorkPage() {
         <p><UiText id="archiveDescription"/></p>
       </header>
       <div className="work-grid">
-        {projects.map((project, index) => <ProjectCard key={project.slug} project={project} index={index} image={selectedImages[index]} />)}
+        {items.map(({project,selectedImage},index)=><ProjectCard key={project.slug} project={project} index={index} image={selectedImage}/>)}
       </div>
     </div>
   );
