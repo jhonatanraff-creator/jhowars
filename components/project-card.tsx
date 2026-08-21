@@ -5,8 +5,8 @@ import type { Project } from "@/data/projects";
 
 export function ProjectCard({ project, index }: { project: Project; index: number }) {
   return (
-    <article className={`project-card project-${project.layout} project-${project.orientation}`} data-reveal style={{ "--delay": `${(index % 3) * 80}ms` } as CSSProperties}>
-      <Link href={`/work/${project.slug}`} aria-label={`Ver projeto ${project.title}`}>
+    <article className={`project-card project-${project.layout} project-${project.orientation}`} data-reveal={index % 2 ? "image-left" : "image-up"} style={{ "--delay": `${(index % 3) * 70}ms` } as CSSProperties}>
+      <Link href={`/work/${project.slug}`} aria-label={`Ver projeto ${project.title}`} data-cursor-project>
         <div className="project-image">
           <Image src={project.cover} alt={`Obra da série ${project.title}`} fill sizes="(max-width: 768px) 94vw, 68vw" />
           <span className="view-project">Ver projeto ↗</span>
