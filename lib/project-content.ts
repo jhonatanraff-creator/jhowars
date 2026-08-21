@@ -1,4 +1,5 @@
 import "server-only";
+import { existsSync } from "node:fs";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { projects as projectDefaults, type MediaOrientation, type Project, type ProjectImage } from "@/data/projects";
@@ -68,6 +69,38 @@ export async function getProjectImages(project:Project):Promise<ProjectImage[]>{
 }
 
 export async function getHomeCandidates(project:Project){
-  if(project.homeImages?.length) return project.homeImages;
+  const validHomeImages=project.homeImages?.filter(publicImageExists)??[];
+  if(validHomeImages.length) return validHomeImages;
   return (await getProjectImages(project)).map(({src})=>src);
+}
+
+/** Convert a public image URL to disk only while running on the server. */
+export function publicImageExists(src:string|undefined):src is string{
+  if(!src?.startsWith("/art/"))return false;
+  return existsSync(path.resolve(process.cwd(),"public",src.slice(1)));
+}
+
+export function selectProjectImage(project:Project,images:ProjectImage[]){
+  if(publicImageExists(project.cover))return project.cover;
+  const homeImage=project.homeImages?.find(publicImageExists);
+  return homeImage??images[0]?.src;
+}
+
+export function logProjectDiagnostics(scope:"HOME"|"WORK",projects:Project[],imagesByProject:ProjectImage[][]){
+  const withImages=imagesByProject.filter((images)=>images.length>0).length;
+  console.info(`${scope} PROJECTS TOTAL:`,projects.length);
+  console.info(`${scope} PROJECTS FEATURED:`,projects.filter((project)=>project.featured).length);
+  console.info(`${scope} PROJECTS WITH IMAGES:`,withImages);
+  projects.forEach((project,index)=>{
+    const images=imagesByProject[index]??[];
+    const first=images[0]?.src;
+    console.info([
+      `[${scope}] ${project.slug}`,
+      `featured=${Boolean(project.featured)}`,
+      `artFolder=${project.artFolder}`,
+      `images=${images.length}`,
+      `first=${first??"none"}`,
+      `exists=${publicImageExists(first)}`,
+    ].join("\n"));
+  });
 }
