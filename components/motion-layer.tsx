@@ -10,19 +10,26 @@ export function MotionLayer() {
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const reveals = document.querySelectorAll<HTMLElement>("[data-reveal]");
-    if (reduced) {
-      reveals.forEach((element) => element.classList.add("is-visible"));
-      return;
-    }
-
+    const observed=new WeakSet<Element>();
+    const observeReveals=(root:ParentNode)=>root.querySelectorAll<HTMLElement>("[data-reveal]").forEach((element)=>{
+      if(observed.has(element))return;
+      observed.add(element);
+      if(reduced)element.classList.add("is-visible");
+      else observer.observe(element);
+    });
     const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
       if (entry.isIntersecting) {
         entry.target.classList.add("is-visible");
         observer.unobserve(entry.target);
       }
     }), { threshold: 0.08, rootMargin: "0px 0px -7%" });
-    reveals.forEach((element) => observer.observe(element));
+    if (reduced) {
+      observeReveals(document);
+      return;
+    }
+    observeReveals(document);
+    const mutationObserver=new MutationObserver(()=>observeReveals(document));
+    mutationObserver.observe(document.body,{childList:true,subtree:true});
 
     let frame = 0;
     const updateParallax = () => {
@@ -37,7 +44,7 @@ export function MotionLayer() {
     const onScroll = () => { if (!frame) frame = requestAnimationFrame(updateParallax); };
     updateParallax();
     addEventListener("scroll", onScroll, { passive: true });
-    return () => { observer.disconnect(); removeEventListener("scroll", onScroll); cancelAnimationFrame(frame); };
+    return () => { observer.disconnect(); mutationObserver.disconnect(); removeEventListener("scroll", onScroll); cancelAnimationFrame(frame); };
   }, [pathname]);
 
   useEffect(() => {

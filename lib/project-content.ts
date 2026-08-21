@@ -9,7 +9,7 @@ export type ProjectContent = { frontmatter:ContentFrontmatter; sections:ContentS
 
 const imagePattern=/\.(avif|gif|jpe?g|png|webp)$/i;
 const ignoredPattern=/(^|\/)(\.|__MACOSX)|thumbs\.db|\.ds_store/i;
-const artRoot=path.join(process.cwd(),"public","art");
+const artRoot=path.resolve(process.cwd(),"public","art");
 const naturalSorter=new Intl.Collator(undefined,{numeric:true,sensitivity:"base"});
 
 function parseFrontmatter(source:string){
@@ -59,10 +59,12 @@ export async function getNextProject(slug:string){const projects=await getProjec
 
 function orientationFor(name:string):MediaOrientation{ return /wide|landscape|horizontal/i.test(name)?"landscape":/square/i.test(name)?"square":"portrait"; }
 export async function getProjectImages(project:Project):Promise<ProjectImage[]>{
-  const directory=path.join(process.cwd(),"public","art",project.artFolder);
-  let files:string[]=[]; try{ files=await fs.readdir(directory); }catch{return project.images;}
-  const discovered=files.filter((file)=>imagePattern.test(file)&&!ignoredPattern.test(file)).sort(naturalSorter.compare).map((file)=>({src:`/art/${project.artFolder}/${file}`,orientation:orientationFor(file)}));
-  return discovered.length?discovered:project.images;
+  const directory=path.resolve(artRoot,project.artFolder);
+  const files=await fs.readdir(directory);
+  return files
+    .filter((file)=>imagePattern.test(file)&&!ignoredPattern.test(file))
+    .sort(naturalSorter.compare)
+    .map((file)=>({src:`/art/${project.artFolder}/${file}`,orientation:orientationFor(file)}));
 }
 
 export async function getHomeCandidates(project:Project){
