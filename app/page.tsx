@@ -2,15 +2,21 @@ import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 import { randomInt } from "node:crypto";
 import { FeaturedProjects } from "@/components/featured-projects";
-import { getHomeCandidates, getProjects, readProjectContent } from "@/lib/project-content";
+import { getProjectImages, getProjects, logProjectDiagnostics, publicImageExists, readProjectContent, selectProjectImage } from "@/lib/project-content";
 
 export default async function Home() {
   noStore();
-  const featured=(await getProjects()).filter((project)=>project.featured);
+  const projects=await getProjects();
+  const imagesByProject=await Promise.all(projects.map(getProjectImages));
+  logProjectDiagnostics("HOME",projects,imagesByProject);
+  const featured=projects.filter((project)=>project.featured);
   const items=await Promise.all(featured.map(async(project,index)=>{
-    const [images,content]=await Promise.all([getHomeCandidates(project),readProjectContent(project)]);
-    const image=images.length?images[randomInt(images.length)]:undefined;
-    return {project,image,summary:content.frontmatter.summary,number:index+1};
+    const projectImages=imagesByProject[projects.indexOf(project)]??[];
+    const configuredCandidates=project.homeImages?.filter(publicImageExists)??[];
+    const candidates=configuredCandidates.length?configuredCandidates:projectImages.map(({src})=>src);
+    const selectedImage=candidates.length?candidates[randomInt(candidates.length)]:selectProjectImage(project,projectImages);
+    const content=await readProjectContent(project);
+    return {project,selectedImage,summary:content.frontmatter.summary,number:index+1};
   }));
   return (
     <>
