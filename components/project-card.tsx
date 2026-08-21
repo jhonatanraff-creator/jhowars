@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
+import { ArtworkMedia } from "@/components/artwork-media";
 import type { Project } from "@/data/projects";
 
 export function ProjectCard({ project, index }: { project: Project; index: number }) {
@@ -8,7 +8,7 @@ export function ProjectCard({ project, index }: { project: Project; index: numbe
     <article className={`project-card project-${project.layout} project-${project.orientation}`} data-reveal={index % 2 ? "image-left" : "image-up"} style={{ "--delay": `${(index % 3) * 70}ms` } as CSSProperties}>
       <Link href={`/work/${project.slug}`} aria-label={`Ver projeto ${project.title}`} data-cursor-project>
         <div className="project-image">
-          <Image src={project.cover} alt={`Obra da série ${project.title}`} fill sizes="(max-width: 768px) 94vw, 68vw" />
+          <ArtworkMedia src={project.cover} project={project.title} position="Cover" orientation={project.orientation} alt={`Obra da série ${project.title}`} sizes="(max-width: 768px) 94vw, 68vw" />
           <span className="view-project">Ver projeto ↗</span>
         </div>
         <div className="project-caption">

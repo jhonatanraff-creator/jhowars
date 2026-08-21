@@ -8,7 +8,7 @@ export default function Home() {
       <section className="home-opening page-shell" aria-labelledby="opening-title">
         <p className="eyebrow opening-label">Artista visual / Londrina — Brasil</p>
         <h1 id="opening-title"><span><i>Imagem, matéria</i></span><span><i>e impressão.</i></span></h1>
-        <span className="opening-mark" aria-hidden="true">●</span>
+        <span className="opening-mark marker" aria-hidden="true">feito à mão</span>
       </section>
 
       <section className="featured page-shell" id="projetos">
@@ -23,7 +23,7 @@ export default function Home() {
       </section>
 
       <div className="ticker" aria-label="Jhow Ars, artista visual, ilustração e impressão, Londrina Brasil">
-        <p>JHOW\.ARS — ARTISTA VISUAL — ILUSTRAÇÃO — IMPRESSÃO — LONDRINA BRASIL —</p>
+        <p>JHOW.ARS — <em>ARTISTA VISUAL</em> — ILUSTRAÇÃO — IMPRESSÃO — LONDRINA — BRASIL — JHOW.ARS — <em>ARTISTA VISUAL</em> — ILUSTRAÇÃO — IMPRESSÃO — LONDRINA — BRASIL —</p>
       </div>
       <section className="home-statement page-shell" data-reveal>
         <p className="eyebrow">Prática multidisciplinar</p>
