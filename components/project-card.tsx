@@ -1,20 +1,21 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import type { Project } from "@/data/projects";
 
-export function ProjectCard({ project, index, large = false }: { project: Project; index: number; large?: boolean }) {
+export function ProjectCard({ project, index }: { project: Project; index: number }) {
   return (
-    <article className={`project-card tone-${project.tone} ${large ? "large" : ""}`}>
+    <article className={`project-card project-${project.layout} project-${project.orientation}`} data-reveal style={{ "--delay": `${(index % 3) * 80}ms` } as CSSProperties}>
       <Link href={`/work/${project.slug}`} aria-label={`Ver projeto ${project.title}`}>
         <div className="project-image">
-          <Image src={project.cover} alt={`Obra da série ${project.title}`} fill sizes={large ? "(max-width: 768px) 100vw, 65vw" : "(max-width: 768px) 100vw, 50vw"} />
+          <Image src={project.cover} alt={`Obra da série ${project.title}`} fill sizes="(max-width: 768px) 94vw, 68vw" />
           <span className="view-project">Ver projeto ↗</span>
         </div>
         <div className="project-caption">
           <span className="project-number">{String(index + 1).padStart(2, "0")}</span>
           <h2>{project.title}</h2>
-          <p>{project.category}</p>
-          <p>{project.year}</p>
+          <p>{project.technique}</p>
+          <p>{project.year} · {project.category}</p>
         </div>
       </Link>
     </article>

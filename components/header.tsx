@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const links = [
   { href: "/work", label: "Work" },
@@ -13,11 +13,19 @@ const links = [
 export function Header() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [compact, setCompact] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setCompact(window.scrollY > 48);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <header className="site-header">
+    <header className={`site-header${compact ? " compact" : ""}`}>
       <Link href="/" className="wordmark" aria-label="Jhow.Ars — início" onClick={() => setOpen(false)}>
-        Jhow<span>.</span>Ars
+        <span className="logo-slot">JHOW<span>\.</span>ARS</span>
       </Link>
       <button className="menu-button" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="site-nav">
         <span>{open ? "Fechar" : "Menu"}</span>

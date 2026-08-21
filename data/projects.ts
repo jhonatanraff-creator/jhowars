@@ -8,6 +8,8 @@ export type Project = {
   cover: string;
   images: string[];
   featured?: boolean;
+  orientation: "portrait" | "landscape" | "square";
+  layout: "wide" | "offset" | "compact";
   tone: "red" | "blue" | "earth" | "ink" | "yellow" | "green";
 };
 
@@ -23,6 +25,8 @@ export const projects: Project[] = [
     cover: "/art/fogo-fossil.svg",
     images: ["/art/fogo-fossil.svg", "/art/fogo-fossil-2.svg", "/art/fogo-fossil-3.svg"],
     featured: true,
+    orientation: "landscape",
+    layout: "wide",
     tone: "red",
   },
   {
@@ -36,6 +40,8 @@ export const projects: Project[] = [
     cover: "/art/bestas-do-dia.svg",
     images: ["/art/bestas-do-dia.svg", "/art/bestas-do-dia-2.svg"],
     featured: true,
+    orientation: "portrait",
+    layout: "offset",
     tone: "blue",
   },
   {
@@ -49,6 +55,8 @@ export const projects: Project[] = [
     cover: "/art/paisagem-do-sitio.svg",
     images: ["/art/paisagem-do-sitio.svg", "/art/paisagem-do-sitio-2.svg"],
     featured: true,
+    orientation: "landscape",
+    layout: "compact",
     tone: "earth",
   },
   {
@@ -61,6 +69,9 @@ export const projects: Project[] = [
       "Edições gráficas em pequenas tiragens exploram repetição, falha, sobreposição e a materialidade direta da tinta impressa.",
     cover: "/art/serigrafias.svg",
     images: ["/art/serigrafias.svg", "/art/serigrafias-2.svg"],
+    featured: true,
+    orientation: "portrait",
+    layout: "offset",
     tone: "ink",
   },
   {
@@ -73,6 +84,8 @@ export const projects: Project[] = [
       "Sistema visual que aproxima anatomia, letra e gesto. As peças trabalham o corpo como superfície de inscrição e movimento.",
     cover: "/art/corpos-graficos.svg",
     images: ["/art/corpos-graficos.svg", "/art/corpos-graficos-2.svg"],
+    orientation: "landscape",
+    layout: "wide",
     tone: "yellow",
   },
   {
@@ -85,6 +98,8 @@ export const projects: Project[] = [
       "Minota nasce do encontro entre mito e matéria. Uma personagem atravessa objetos, desenhos e páginas, mudando de escala e linguagem.",
     cover: "/art/minota.svg",
     images: ["/art/minota.svg", "/art/minota-2.svg"],
+    orientation: "square",
+    layout: "compact",
     tone: "green",
   },
 ];
