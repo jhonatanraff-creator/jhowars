@@ -17,7 +17,7 @@ export default async function Home() {
       <section className="home-opening page-shell" aria-labelledby="opening-title">
         <p className="eyebrow opening-label">Artista visual / Londrina — Brasil</p>
         <h1 id="opening-title"><span><i>Imagem, matéria</i></span><span><i>e impressão.</i></span></h1>
-        <span className="opening-mark marker" aria-hidden="true">feito à mão</span>
+        <span className="opening-mark marker" aria-hidden="true">FEITO A MAO</span>
       </section>
 
       <section className="featured page-shell" id="projetos">
