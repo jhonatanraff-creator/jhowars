@@ -6,13 +6,13 @@ export default function Home() {
   return (
     <>
       <section className="home-opening page-shell" aria-labelledby="opening-title">
-        <p className="eyebrow">Artista visual / Londrina — Brasil</p>
-        <h1 id="opening-title">Imagem, matéria<br />e impressão.</h1>
+        <p className="eyebrow opening-label">Artista visual / Londrina — Brasil</p>
+        <h1 id="opening-title"><span><i>Imagem, matéria</i></span><span><i>e impressão.</i></span></h1>
         <span className="opening-mark" aria-hidden="true">●</span>
       </section>
 
       <section className="featured page-shell" id="projetos">
-        <div className="section-heading">
+        <div className="section-heading" data-reveal="stagger">
           <h2>Selected Work</h2>
           <span>2023—2026</span>
         </div>

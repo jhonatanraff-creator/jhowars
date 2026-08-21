@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
-import { RevealObserver } from "@/components/reveal-observer";
+import { MotionLayer } from "@/components/motion-layer";
+import { PageMotion } from "@/components/page-motion";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,8 +19,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="pt-BR">
       <body id="top">
         <Header />
-        <RevealObserver />
-        <main>{children}</main>
+        <MotionLayer />
+        <main><PageMotion>{children}</PageMotion></main>
         <Footer />
       </body>
     </html>
