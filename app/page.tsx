@@ -3,6 +3,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { randomInt } from "node:crypto";
 import { FeaturedProjects } from "@/components/featured-projects";
 import { getProjectImages, getProjects, logProjectDiagnostics, publicImageExists, readProjectContent, selectProjectImage } from "@/lib/project-content";
+import { UiText } from "@/components/preferences";
 
 export default async function Home() {
   noStore();
@@ -28,11 +29,11 @@ export default async function Home() {
 
       <section className="featured page-shell" id="projetos">
         <div className="section-heading" data-reveal="stagger">
-          <h2>Selected Work</h2>
+          <h2><UiText id="selectedWork"/></h2>
           <span>2023—2026</span>
         </div>
         <FeaturedProjects items={items}/>
-        <Link href="/work" className="text-link">Ver todos os projetos <span>↗</span></Link>
+        <Link href="/work" className="text-link"><UiText id="allProjects"/> <span>↗</span></Link>
       </section>
 
       <div className="ticker" aria-label="Jhow Ars, artista visual, ilustração e impressão, Londrina Brasil">
