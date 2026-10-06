@@ -106,6 +106,22 @@ async function getMedia(id, slug, client) {
     else imageCount++;
     return ref;
   }
+  if (!local && url) {
+    const remoteFilename = path.basename(new URL(url).pathname);
+    const remoteExtension = path.extname(remoteFilename).toLowerCase();
+    const remoteType = remoteExtension === ".gif" || remoteExtension === ".mp4" || remoteExtension === ".webm" ? "sanity.fileAsset" : "sanity.imageAsset";
+    const filenameMatches = await client.fetch(`*[_type == $type && originalFilename == $filename][0...2]{_id, sha256hash}`, { type: remoteType, filename: remoteFilename });
+    if (filenameMatches.length === 1) {
+      const existing = filenameMatches[0];
+      let assetRef = existing._id;
+      const isDuplicate = Boolean(existing.sha256hash && assetHashes.has(existing.sha256hash));
+      if (isDuplicate) { duplicateCount++; assetRef = assetHashes.get(existing.sha256hash); }
+      else if (existing.sha256hash) assetHashes.set(existing.sha256hash, existing._id);
+      uploadedAssets.set(id, assetRef);
+      if (!isDuplicate) { if (remoteExtension === ".gif") gifCount++; else imageCount++; }
+      return assetRef;
+    }
+  }
   let buffer;
   let filename;
   try {
@@ -260,7 +276,7 @@ function validateReferences(value) {
   if (Array.isArray(value)) { for (const item of value) validateReferences(item); return; }
   if (!value || typeof value !== "object") return;
   if (value._type === "reference" && value._ref) {
-    const available = value._ref.startsWith("legacy-asset-") ? mediaAssetIds.has(value._ref) : recordIds.has(value._ref);
+    const available = mediaAssetIds.has(value._ref) || recordIds.has(value._ref);
     if (!available) throw new Error(`Pré-validação falhou: referência sem destino ${value._ref}.`);
   }
   for (const child of Object.values(value)) validateReferences(child);
@@ -282,10 +298,26 @@ if (dryRun) {
   process.exit(0);
 }
 let created = 0, updated = 0, adopted = 0, skipped = 0;
+const newlyCreated = new Set();
 for (const desired of records) {
   const current = await client.getDocument(desired._id);
+  if (current) continue;
+  const skeleton = { ...desired };
+  delete skeleton.migrationFingerprint;
+  for (const field of ["artworks", "artwork", "project"]) delete skeleton[field];
+  await client.createIfNotExists(skeleton);
+  newlyCreated.add(desired._id);
+  created++;
+}
+for (const desired of records) {
+  const current = await client.getDocument(desired._id);
+  if (newlyCreated.has(desired._id)) {
+    const complete = { ...desired }; delete complete._id; delete complete._type;
+    await client.patch(desired._id).set(complete).commit();
+    continue;
+  }
   const currentContent = { ...(current || {}) }; delete currentContent._rev; delete currentContent._createdAt; delete currentContent._updatedAt;
-  if (!current) { await client.createIfNotExists(desired); created++; continue; }
+  if (!current) throw new Error(`Documento não encontrado após criação: ${desired._id}`);
   if (!current.migrationFingerprint) {
     if (/^legacy-(?:project|artwork)-/.test(desired._id) || desired._id === "site-settings") {
       const missing = Object.fromEntries(Object.entries(desired).filter(([key]) => !["_id", "_type", "migrationFingerprint"].includes(key)));
