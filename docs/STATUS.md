@@ -31,10 +31,10 @@ Aguardar referências visuais e definição da arquitetura antes de implementar 
 
 ## Validação e Git
 
-- `npm run typecheck`: PENDENTE.
-- `npm run lint`: PENDENTE.
+- `npm run typecheck`: não disponível; script não definido em `package.json` (ver resultado de `tsc` abaixo).
+- `npm run lint`: aprovado sem erros; 2 avisos existentes.
 - Branch: `feat/legacy-audit-foundation`.
-- Commit/push: PENDENTE.
+- Commit/push: concluído na branch `feat/legacy-audit-foundation`.
 
 
 
