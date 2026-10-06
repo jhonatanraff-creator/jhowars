@@ -18,3 +18,5 @@
 16. Não substituir um asset por aproximação quando o original existir.
 17. Antes de grandes alterações, documentar impacto esperado.
 18. Evitar refactors fora do escopo.
+19. Não publicar possíveis notas internas marcadas no inventário sem revisão humana.
+20. CMS seeds devem ser não destrutivos; nunca sobrescrever documentos existentes ou gravar em produção sem confirmação explícita.

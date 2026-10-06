@@ -7,7 +7,28 @@
 - Arquivo local pode ser placeholder de 32 px; a dimensão exibida é do arquivo medido. URLs CDN não foram baixadas novamente.
 - **252 IDs** de imagem no HTML; **25** com arquivo local correspondente; **227** referenciados apenas no CDN.
 - Diretórios extraídos contêm 159 arquivos de assets e 50 hashes binários distintos (inclui CSS/brand); cópias extraídas de ZIPs contêm 278 entradas de imagem/CSS, com sobreposição substancial.
-- Não foram copiados para `public/`, renomeados, otimizados, convertidos ou apagados arquivos.
+- Na rodada inicial de auditoria, não foram copiados para `public/`, renomeados, otimizados, convertidos ou apagados arquivos.
+
+## Seleção migrada para a V1
+
+A implementação V1 copiou somente as seguintes capas/identidades dos arquivos locais de ZIP, mantendo o arquivo original intocado. Estas cópias são usadas como fallback local e podem ser enviadas pelo seed protegido do CMS:
+
+| Projeto | Arquivo novo | Fonte de resolução completa |
+|---|---|---|
+| VEJA SAÚDE | `public/legacy/veja-saude/cover.png` | `2faa9f2c-7f03-4924-8876-0ff94a367005_rw_1920.png` |
+| BUMBA MEU BOI | `public/legacy/bumba-meu-boi/cover.png` | `13a5f1fa-4b99-4f3e-b95b-e836af08a03c_rw_1920.png` |
+| BESTAS DO DIA | `public/legacy/bestas-do-dia/cover.png` | `635d16ae-65a5-4acf-9fcb-bbe57ea6ad0e_rw_1920.png` |
+| FOGO FÓSSIL | `public/legacy/fogo-fossil/cover.png` | `36c3c45e-2099-485b-91a2-f28d31b1e87b_rw_1920.png` |
+| O Que Fica | `public/legacy/o-que-fica/cover.png` | `413bba96-3e41-4216-9154-84fc49ca0d3a_rw_1920.png` |
+| Countenance | `public/legacy/countenance/cover.jpg` | `78fa029f-af65-4956-87a5-9084e168520b_rw_1920.jpg` |
+| Corpos Gráficos | `public/legacy/corpos-graficos/cover.png` | `b3630477-ccc3-4887-a1d0-70f01b523a7b_car_3x4.png` |
+| Posters 2024 | `public/legacy/posters-2024/cover.jpg` | `b62d23fc-134e-4e95-9f8a-c9b16eef50db_rwc_960x0x1921x2559x1921.jpg` |
+| Posters 2024 | `public/legacy/posters-2024/second.jpg` | `296c8bc9-7529-4597-820f-92431596bc64_rwc_0x0x2001x2666x2001.jpg` |
+| Countenance | `public/legacy/countenance/second.jpg` | `a1f9bafc-ff53-40b5-9f4b-f38d469bd659_rw_1920.jpg` |
+| Marca, variação GIF | `public/legacy/brand/wordmark.gif` | `cc2fe08d-6976-4c98-b56d-b00065f126fe_rwc_0x0x1407x563x4096.gif` |
+| Marca, variação PNG | `public/legacy/brand/wordmark-hover.png` | `95cb9bdb-3bc6-4eed-9caf-23a7fa185f65_rwc_11x0x1425x563x4096.png` |
+
+Foram excluídos placeholders de 32 px e duplicatas exatas dos diretórios extraídos. As 252 referências CDN e arquivos restantes continuam documentados, sem cópia para a nova interface.
 
 ## Imagens referenciadas
 
