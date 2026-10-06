@@ -1,14 +1,23 @@
 import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
+import { getSiteSettings } from "@/lib/portfolio";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://jhowars.com"),
-  title: { default: "Jhow.ars — Visual Artist & Illustrator", template: "%s — Jhow.ars" },
-  description: "Visual artist and designer focused on illustration, print editions, art books, zines and experimental visual projects. Authorial portfolio by Jhow.ars.",
-  openGraph: { title: "Jhow.ars — Visual Artist & Illustrator", description: "Visual artist and designer focused on illustration, print editions, art books, zines and experimental visual projects. Authorial portfolio by Jhow.ars.", type: "website", locale: "pt_BR" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  const title = settings?.seoTitle || settings?.artistName || "Jhow.ars — Visual Artist & Illustrator";
+  const description = settings?.seoDescription || "";
+  const image = settings?.defaultOgImage;
+  return {
+    metadataBase: new URL("https://jhowars.com"),
+    title: { default: title, template: `%s — ${settings?.artistName || "Jhow.ars"}` },
+    description,
+    openGraph: { title, description, ...(image ? { images: [image] } : {}), type: "website", locale: "pt_BR" },
+  };
+}
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="pt-BR"><body><SiteHeader /><main>{children}</main></body></html>;
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const settings = await getSiteSettings();
+  return <html lang="pt-BR"><body><SiteHeader settings={settings} /><main>{children}</main><Footer /></body></html>;
 }

@@ -7,13 +7,21 @@ const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET;
 const client = projectId && dataset ? createClient({ projectId, dataset, apiVersion: process.env.NEXT_PUBLIC_SANITY_API_VERSION || "2025-01-01", useCdn: true }) : null;
 
 export type HomePost = {
-  _id: string; internalName: string; enabled: boolean; image?: string; mobileImage?: string; orientation: string; sizeHint: string;
-  artwork?: { _id: string; title?: string }; project?: { _id: string; title?: string; slug?: string };
+  _id: string; internalName: string; enabled: boolean; image?: string; imageAspectRatio?: number; mobileImage?: string; orientation: string; sizeHint: string;
+  artwork?: { _id: string; title?: string; projectSlug?: string; images?: Array<{ _key: string; image?: string; alt?: string; caption?: string }>; year?: number; technique?: string; dimensions?: string; edition?: string; description?: string };
+  project?: { _id: string; title?: string; slug?: string; category?: string; year?: number; summary?: string };
   modalTitle?: string; year?: number; technique?: string; dimensions?: string; edition?: string; description?: string;
   modalGallery: Array<{ _key: string; image?: string; alt?: string; caption?: string }>; altText?: string; weight?: number;
 };
 export type CmsArtwork = PortfolioArtwork & { year?: number; technique?: string; dimensions?: string; edition?: string; description?: string; status?: string; images?: Array<{ _key: string; image?: string; alt?: string; caption?: string }> };
-export type CmsProject = PortfolioProject & { summary?: string; client?: string; credits?: string; legacyUrl?: string; artworks?: CmsArtwork[]; contentBlocks?: unknown[] };
+export type CmsProjectBlock = {
+  _key?: string; _type: string; heading?: string; body?: string; widthStyle?: "small" | "medium" | "large" | "full";
+  imageUrl?: string; alt?: string; caption?: string; leftImageUrl?: string; rightImageUrl?: string;
+  leftAlt?: string; rightAlt?: string; leftCaption?: string; rightCaption?: string;
+  mediaUrl?: string; externalUrl?: string; size?: string;
+  images?: Array<{ _key: string; image?: string; alt?: string; caption?: string }>;
+};
+export type CmsProject = PortfolioProject & { summary?: string; client?: string; credits?: string; legacyUrl?: string; artworks?: CmsArtwork[]; contentBlocks?: CmsProjectBlock[] };
 export type CmsShopItem = { _id: string; title: string; slug?: string; artwork?: CmsArtwork; productImages: Array<{ _key: string; image?: string; alt?: string; caption?: string }>; image?: string; description?: string; descriptionPt?: string; technique?: string; dimensions?: string; edition?: string; price?: number; currency?: string; availability: "available" | "sold-out" | "coming-soon"; ramonaUrl?: string; externalUrl?: string; featured?: boolean; order?: number };
 export type AboutPage = { intro?: string; bio?: string; portrait?: string; circulation?: Array<{ name: string; organization?: string; city?: string; state?: string; years?: number[]; description?: string; link?: string }>; clients?: string[]; press?: string[]; additionalSections?: Array<{ heading?: string; body?: string }> };
 export type SiteSettings = { artistName?: string; artistSubtitle?: string; email?: string; instagram?: string; behance?: string; linkedin?: string; seoTitle?: string; seoDescription?: string; defaultOgImage?: string };
@@ -22,16 +30,16 @@ export type SiteSettings = { artistName?: string; artistSubtitle?: string; email
 export async function getProjects(): Promise<CmsProject[]> {
   if (!client) return fallbackProjects;
   try {
-    const live = await client.fetch<CmsProject[]>(`*[_type == "project"] | order(year desc, title asc){_id,_type,title,"slug":slug.current,year,category,summary,client,credits,legacyUrl,featured,"cover":coverImage.asset->url,"descriptionPt":summary,"descriptionEn":null,"artworks":artworks[]->{_id,title,"image":coverImage.asset->url,altText,"projectSlug":project->slug.current},contentBlocks[]{...,image.asset->url,"mediaUrl":media.asset->url,images[]{...,"image":image.asset->url}}}`);
-    return live.length ? live : fallbackProjects;
+    const live = await client.fetch<CmsProject[]>(`*[_type == "project"] | order(year desc, title asc){_id,_type,title,"slug":slug.current,year,category,summary,client,credits,legacyUrl,featured,"cover":coverImage.asset->url,"descriptionPt":summary,"descriptionEn":null,"artworks":artworks[]->{_id,title,"image":coverImage.asset->url,altText,"projectSlug":project->slug.current},contentBlocks[]{...,"imageUrl":image.asset->url,"leftImageUrl":leftImage.asset->url,"rightImageUrl":rightImage.asset->url,"mediaUrl":media.asset->url,images[]{_key,alt,caption,"image":image.asset->url}}}`);
+    return live;
   } catch { return fallbackProjects; }
 }
 
 export async function getProjectBySlug(slug: string): Promise<CmsProject | null> {
   if (client) {
     try {
-      const live = await client.fetch<CmsProject | null>(`*[_type == "project" && slug.current == $slug][0]{_id,_type,title,"slug":slug.current,year,category,summary,client,credits,legacyUrl,featured,"cover":coverImage.asset->url,"descriptionPt":summary,"descriptionEn":null,"artworks":artworks[]->{_id,title,"image":coverImage.asset->url,altText,"projectSlug":project->slug.current},contentBlocks[]{...,image.asset->url,"mediaUrl":media.asset->url,images[]{...,"image":image.asset->url}}}`, { slug });
-      if (live) return live;
+      const live = await client.fetch<CmsProject | null>(`*[_type == "project" && slug.current == $slug][0]{_id,_type,title,"slug":slug.current,year,category,summary,client,credits,legacyUrl,featured,"cover":coverImage.asset->url,"descriptionPt":summary,"descriptionEn":null,"artworks":artworks[]->{_id,title,"image":coverImage.asset->url,altText,"projectSlug":project->slug.current},contentBlocks[]{...,"imageUrl":image.asset->url,"leftImageUrl":leftImage.asset->url,"rightImageUrl":rightImage.asset->url,"mediaUrl":media.asset->url,images[]{_key,alt,caption,"image":image.asset->url}}}`, { slug });
+      return live;
     }
     catch { /* Use the local record below while Sanity is unavailable. */ }
   }
@@ -41,19 +49,19 @@ export async function getProjectBySlug(slug: string): Promise<CmsProject | null>
 export async function getArtworks(): Promise<CmsArtwork[]> {
   if (!client) return fallbackArtworks;
   try {
-    const live = await client.fetch<CmsArtwork[]>(`*[_type == "artwork"] | order(title asc, year desc){_id,_type,title,year,technique,dimensions,edition,description,status,"image":coalesce(coverImage.asset->url,images[0].image.asset->url),altText,"alt":altText,"projectSlug":project->slug.current,"layout":"portrait",images[]{...,"image":image.asset->url}}`);
-    return live.length ? live : fallbackArtworks;
+      const live = await client.fetch<CmsArtwork[]>(`*[_type == "artwork"] | order(title asc, year desc){_id,_type,title,year,technique,dimensions,edition,description,status,"image":coalesce(coverImage.asset->url,images[0].image.asset->url),altText,"alt":altText,"projectSlug":project->slug.current,"layout":"portrait",images[]{_key,alt,caption,"image":image.asset->url}}`);
+    return live;
   } catch { return fallbackArtworks; }
 }
 
 export async function getHomePosts(): Promise<HomePost[]> {
   if (client) {
     try {
-      const live = await client.fetch<HomePost[]>(`*[_type == "homePost" && enabled == true] | order(_createdAt asc){_id,internalName,enabled,"image":image.asset->url,"mobileImage":mobileImage.asset->url,orientation,sizeHint,"artwork":artwork->{_id,title},"project":project->{_id,title,"slug":slug.current},modalTitle,year,technique,dimensions,edition,description,"modalGallery":modalGallery[]{_key,"image":image.asset->url,alt,caption},altText,weight}`);
-      if (live.length) return live;
-    } catch { /* Use a predictable local fallback while developing without Sanity. */ }
+      const live = await client.fetch<HomePost[]>(`*[_type == "homePost" && enabled == true] | order(_createdAt asc){_id,internalName,enabled,"image":image.asset->url,"imageAspectRatio":image.asset->metadata.dimensions.aspectRatio,"mobileImage":mobileImage.asset->url,orientation,sizeHint,"artwork":artwork->{_id,title,"projectSlug":project->slug.current,year,technique,dimensions,edition,description,images[]{_key,alt,caption,"image":image.asset->url}},"project":project->{_id,title,"slug":slug.current,category,year,summary},modalTitle,year,technique,dimensions,edition,description,"modalGallery":modalGallery[]{_key,"image":image.asset->url,alt,caption},altText,weight}`);
+      return live.filter((post) => post.enabled && post.image);
+    } catch { /* Return no HomePosts if the CMS query fails; never substitute unrelated artwork. */ }
   }
-  return fallbackProjects.map((project, index) => ({ _id: `fallback-home-${project.slug}`, internalName: project.title, enabled: true, image: project.cover, orientation: fallbackArtworks[index]?.layout || "auto", sizeHint: "auto", project: { _id: project._id, title: project.title, slug: project.slug }, modalTitle: project.title, modalGallery: [{ _key: "cover", image: project.cover, alt: project.title }] }));
+  return [];
 }
 
 export async function getShopItems(): Promise<CmsShopItem[]> {
