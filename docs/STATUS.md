@@ -2,47 +2,37 @@
 
 ## Fase atual
 
-Legacy Audit / Foundation
+CMS Foundation + Legacy Content Migration — base de código e dry-run preparados; migração remota aguarda configuração do Sanity.
 
-## Concluído
+## Concluído nesta rodada
 
-- Auditoria do repositório existente e inventário de stack, estrutura App Router, páginas, componentes, dados, assets, fontes, SEO, scripts, responsive e configurações.
-- Leitura de 9 páginas públicas em HTML e 1 HTML auxiliar de player.
-- Auditoria dos ZIPs de assets separados e dos 9 ZIPs internos contidos no arquivo `(2).zip`.
-- Inventário de 8 projetos/cartões, assets, logos, textos, URLs, SEO, GIFs e possíveis notas internas.
-- Documentação da fonte de verdade e regras de trabalho.
-- Nenhuma interface foi criada; nenhum asset foi movido, removido, renomeado, otimizado ou convertido.
+- Schemas para HomePost, Artwork, Project, ShopItem, AboutPage singleton, SiteSettings singleton e blocos editoriais.
+- Studio organizado por Home, Obras, Projetos, Shop, Sobre e Site, com filtros de disponibilidade, previews, validações e descrições de campos.
+- Seed determinístico, dry-run, proteção para produção, SHA-256 na deduplicação, proteção para conteúdo previamente editado e compatibilidade com os IDs do seed V1.
+- Ordem de mídia das páginas detalhadas registrada em `data/legacy-modules.json`.
+- Preparada migração para oito projetos, dez registros Artwork identificáveis, oito HomePosts, About e SiteSettings; zero ShopItems inventados.
+- Data layer centralizada com queries e fallbacks; `/studio` preservada.
+- Guia em `docs/CMS.md` e relatório em `docs/CMS_MIGRATION_REPORT.md`.
+- Dry-run executado repetidamente sem escrita remota; pré-validação local confirmou 28 IDs únicos e referências planejadas resolvíveis.
+- `npm run typecheck` e `npm run build` aprovados; rota `/studio` responde HTTP 200 e mostra configuração pendente.
+- ESLint dos arquivos alterados passou.
 
 ## Pendente
 
-- Definição da arquitetura do novo site.
-- Referências visuais e direção de arte.
-- Novo Design System.
-- Definição da Home.
-- Seleção final das obras.
-- Migração dos assets.
-- Implementação.
-- QA.
-- Deploy.
+- Configurar `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET` e `SANITY_API_TOKEN` localmente.
+- Gravar o seed e confirmar uploads, referências, deduplicação e idempotência no dataset escolhido.
+- Abrir o Studio conectado para revisão humana dos dados migrados.
+- Revisar projetos com conteúdo incompleto e atualizar a URL assinada do vídeo Adobe, se necessário.
+- `npm run lint` global retorna um erro preexistente em `next-env.d.ts:3` e dois avisos antigos de configuração.
+- A rota `/studio` ainda não pode abrir o Studio conectado, pois o Project ID não está configurado.
+- Aguardar nova rodada para conectar os dados à direção visual aprovada; QA visual e deploy seguem pendentes.
 
 ## Próximo passo
 
-Aguardar referências visuais e definição da arquitetura antes de implementar novas páginas.
+“Configurar o projeto e dataset Sanity, revisar o dry-run e executar a migração para iniciar o QA de conteúdo.”
 
 ## Validação e Git
 
-- `npm run typecheck`: não disponível; script não definido em `package.json` (ver resultado de `tsc` abaixo).
-- `npm run lint`: aprovado sem erros; 2 avisos existentes.
-- Branch: `feat/legacy-audit-foundation`.
-- Commit/push: concluído na branch `feat/legacy-audit-foundation`.
-
-
-
-## Verificações da rodada
-
-- Cobertura HTML: 10 documentos HTML únicos (9 páginas públicas e 1 shell de player); 20 cópias de HTML dentro de ZIPs comparadas por hash, sem conteúdo HTML único adicional.
-- Inventário: 8 projetos, 252 IDs de mídia CDN, arquivos locais e notas para revisão documentados.
-- `npm run typecheck`: script não definido em `package.json`.
-- `tsc --noEmit --pretty false`: aprovado.
-- `npm run lint`: aprovado sem erros; 2 avisos existentes em `eslint.config.mjs` e `postcss.config.mjs`.
-- Validação visual/QA do site: não realizada nesta rodada, que não implementa interface.
+- Branch: `feat/cms-v1-redesign`.
+- Sem alteração de interface, merge ou deploy nesta rodada.
+- Resultados completos de validação: `docs/CMS_MIGRATION_REPORT.md`.
