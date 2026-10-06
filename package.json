@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "cms:seed": "node --experimental-strip-types scripts/seed-sanity.mjs"
+    "cms:seed": "node --experimental-strip-types scripts/seed-sanity.mjs",
+    "sanity:seed": "node --experimental-strip-types scripts/seed-sanity.mjs"
   },
   "dependencies": {
     "@sanity/client": "^7.11.1",
