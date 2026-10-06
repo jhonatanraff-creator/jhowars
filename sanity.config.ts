@@ -23,7 +23,7 @@ const deskStructure = (S: StructureBuilder) =>
 export default defineConfig({
   name: "jhowars",
   title: "Jhow.ars",
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "missing-project-id",
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "frut5d17",
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || "production",
   basePath: "/studio",
   plugins: [structureTool({ structure: deskStructure })],
