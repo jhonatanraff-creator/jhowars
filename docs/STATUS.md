@@ -2,47 +2,40 @@
 
 ## Fase atual
 
-Legacy Audit / Foundation
+CMS + migration + redesign + implementation V1 — aguardando QA humano.
 
 ## Concluído
 
-- Auditoria do repositório existente e inventário de stack, estrutura App Router, páginas, componentes, dados, assets, fontes, SEO, scripts, responsive e configurações.
-- Leitura de 9 páginas públicas em HTML e 1 HTML auxiliar de player.
-- Auditoria dos ZIPs de assets separados e dos 9 ZIPs internos contidos no arquivo `(2).zip`.
-- Inventário de 8 projetos/cartões, assets, logos, textos, URLs, SEO, GIFs e possíveis notas internas.
-- Documentação da fonte de verdade e regras de trabalho.
-- Nenhuma interface foi criada; nenhum asset foi movido, removido, renomeado, otimizado ou convertido.
+- Revisada a auditoria anterior e a documentação de páginas, projetos, textos, rotas, marca e assets.
+- Implementadas as rotas `/`, `/projetos`, `/projetos/[slug]`, `/sobre`, `/shop` e `/studio`.
+- Criados schemas Sanity para artwork, project, shopItem e siteSettings; o frontend tem fallback local sem credenciais.
+- Criado seed conservador: dry-run padrão, exige confirmação explícita para escrita, bloqueia `production` sem argumento adicional e nunca substitui documentos existentes.
+- Migradas para `public/legacy/` oito capas, duas imagens de galeria mapeadas e duas variantes oficiais do wordmark, selecionadas do ZIP.
+- Atualizadas metadata/sitemap e redirecionamentos das principais rotas anteriores.
+- Preservada a implementação anterior no repositório; rotas novas não usam seus textos ou imagens geradas.
+- Documentados CMS e sistema visual V1.
 
 ## Pendente
 
-- Definição da arquitetura do novo site.
-- Referências visuais e direção de arte.
-- Novo Design System.
-- Definição da Home.
-- Seleção final das obras.
-- Migração dos assets.
-- Implementação.
-- QA.
-- Deploy.
+- Configurar o projeto externo Sanity e suas variáveis seguras.
+- Revisar conteúdo, composição e comportamento em desktop/mobile no QA humano.
+- Confirmar seleção final e ordem de todas as obras; enriquecer galerias com imagens verificadas.
+- Inserir produtos reais e preços aprovados antes de abrir a loja.
+- Revisar redirects legados, metadados finais e acessibilidade.
+- Aprovação de design, QA final e deploy.
 
 ## Próximo passo
 
-Aguardar referências visuais e definição da arquitetura antes de implementar novas páginas.
+“Revisar a V1 nos tamanhos 1440, 768, 430 e 390 px; enviar feedback antes de declarar a direção aprovada.”
 
 ## Validação e Git
 
-- `npm run typecheck`: não disponível; script não definido em `package.json` (ver resultado de `tsc` abaixo).
-- `npm run lint`: aprovado sem erros; 2 avisos existentes.
-- Branch: `feat/legacy-audit-foundation`.
-- Commit/push: concluído na branch `feat/legacy-audit-foundation`.
-
-
-
-## Verificações da rodada
-
-- Cobertura HTML: 10 documentos HTML únicos (9 páginas públicas e 1 shell de player); 20 cópias de HTML dentro de ZIPs comparadas por hash, sem conteúdo HTML único adicional.
-- Inventário: 8 projetos, 252 IDs de mídia CDN, arquivos locais e notas para revisão documentados.
-- `npm run typecheck`: script não definido em `package.json`.
-- `tsc --noEmit --pretty false`: aprovado.
-- `npm run lint`: aprovado sem erros; 2 avisos existentes em `eslint.config.mjs` e `postcss.config.mjs`.
-- Validação visual/QA do site: não realizada nesta rodada, que não implementa interface.
+- `npm run typecheck`: aprovado.
+- `npm run lint`: aprovado, zero erros e dois avisos preexistentes em `eslint.config.mjs` e `postcss.config.mjs`.
+- `npm run build`: aprovado com Next.js 15.5.27.
+- `npm run cms:seed` em dry-run: aprovado, oito projetos, dez obras e uma configuração; nenhuma escrita remota.
+- Browser QA técnico: Home conferida em 1440, 768, 430 e 390 px; sem overflow horizontal. Modal conferido para dez itens, navegação por setas/Escape, links de projetos/galerias e redirects antigos. QA humano ainda pendente.
+- `npm audit --omit=dev`: sem vulnerabilidades críticas após patch do Next; ainda relata 11 moderadas e 15 altas na árvore de dependências, incluindo pacotes transitivos do CMS.
+- Não houve deploy; o Sanity remoto não foi configurado e nenhum seed foi gravado.
+- Branch: `feat/cms-v1-redesign`.
+- Deploy: não realizado.

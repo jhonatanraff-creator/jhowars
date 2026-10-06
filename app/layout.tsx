@@ -1,32 +1,14 @@
 import type { Metadata } from "next";
-import { Footer } from "@/components/footer";
-import { Header } from "@/components/header";
-import { MotionLayer } from "@/components/motion-layer";
-import { PageMotion } from "@/components/page-motion";
-import { PreferencesProvider } from "@/components/preferences";
+import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://jhowars.com"),
-  title: { default: "Jhow.Ars — Artista visual & designer", template: "%s — Jhow.Ars" },
-  description: "Portfólio de Jhow.Ars, artista visual, ilustrador e designer brasileiro.",
-  keywords: ["Jhow Ars", "artista visual", "ilustração", "design", "arte brasileira"],
-  openGraph: { title: "Jhow.Ars — Artista visual & designer", description: "Obras, imagens e projetos de Jhow.Ars.", type: "website", locale: "pt_BR" },
-  robots: { index: true, follow: true },
+  title: { default: "Jhow.ars — Visual Artist & Illustrator", template: "%s — Jhow.ars" },
+  description: "Visual artist and designer focused on illustration, print editions, art books, zines and experimental visual projects. Authorial portfolio by Jhow.ars.",
+  openGraph: { title: "Jhow.ars — Visual Artist & Illustrator", description: "Visual artist and designer focused on illustration, print editions, art books, zines and experimental visual projects. Authorial portfolio by Jhow.ars.", type: "website", locale: "pt_BR" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <html lang="pt-BR" suppressHydrationWarning>
-      <head><script dangerouslySetInnerHTML={{__html:`(()=>{try{const t=localStorage.getItem('jhow-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=t;const l=localStorage.getItem('jhow-locale');if(l)document.documentElement.lang=l==='pt'?'pt-BR':'en'}catch{}})()`}} /></head>
-      <body id="top">
-        <PreferencesProvider>
-          <Header />
-          <MotionLayer />
-          <main><PageMotion>{children}</PageMotion></main>
-          <Footer />
-        </PreferencesProvider>
-      </body>
-    </html>
-  );
+  return <html lang="pt-BR"><body><SiteHeader /><main>{children}</main></body></html>;
 }
