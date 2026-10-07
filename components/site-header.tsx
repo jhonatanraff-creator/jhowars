@@ -19,6 +19,10 @@ export function SiteHeader({ settings, settingsByLocale }: { settings: SiteSetti
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname() || "/";
   const activeLocale: Locale = pathname === "/en" || pathname.startsWith("/en/") ? "en" : "pt";
+  const projectsActive = pathname === "/projetos" || pathname.startsWith("/projetos/") || pathname === "/en/projects" || pathname.startsWith("/en/projects/");
+  const aboutActive = pathname === "/sobre" || pathname === "/en/about";
+  const shopActive = pathname === "/shop" || pathname === "/en/shop";
+  const hasActivePage = projectsActive || aboutActive || shopActive;
   const labels = copy[activeLocale];
   const activeSettings = settingsByLocale?.[activeLocale] ?? settings;
   const prefix = activeLocale === "en" ? "/en" : "";
@@ -32,11 +36,11 @@ export function SiteHeader({ settings, settingsByLocale }: { settings: SiteSetti
     <Link href={counterpartPath(pathname, "pt")} aria-current={activeLocale === "pt" ? "page" : undefined} className={activeLocale === "pt" ? "is-active" : ""}>PT</Link><span>/</span><Link href={counterpartPath(pathname, "en")} aria-current={activeLocale === "en" ? "page" : undefined} className={activeLocale === "en" ? "is-active" : ""}>EN</Link>
   </div>;
   return <header className="site-header">
-    <nav className={`site-nav${menuOpen ? " is-open" : ""}`} aria-label={labels.navigation} id="site-navigation">
+    <nav className={`site-nav${menuOpen ? " is-open" : ""}`} aria-label={labels.navigation} id="site-navigation" data-has-active={hasActivePage}>
       <div className="primary-links">
-        <Link href={`${prefix}/projetos`.replace("/en/projetos", "/en/projects")} onClick={() => setMenuOpen(false)}>{labels.projects}</Link>
-        <Link href={activeLocale === "en" ? "/en/about" : "/sobre"} onClick={() => setMenuOpen(false)}>{labels.about}</Link>
-        <Link href={`${prefix}/shop`} onClick={() => setMenuOpen(false)}>{labels.shop}</Link>
+        <Link href={`${prefix}/projetos`.replace("/en/projetos", "/en/projects")} aria-current={projectsActive ? "page" : undefined} onClick={() => setMenuOpen(false)}>{labels.projects}</Link>
+        <Link href={activeLocale === "en" ? "/en/about" : "/sobre"} aria-current={aboutActive ? "page" : undefined} onClick={() => setMenuOpen(false)}>{labels.about}</Link>
+        <Link href={`${prefix}/shop`} aria-current={shopActive ? "page" : undefined} onClick={() => setMenuOpen(false)}>{labels.shop}</Link>
       </div>
       <div className="mobile-header-tools">{languageSwitch}<div className="social-links" aria-label="Redes e contato">{socials.map(({ key, label, href }) => href ? <a key={key} href={href} aria-label={label} title={label}><SocialIcon kind={key} /></a> : null)}</div></div>
     </nav>

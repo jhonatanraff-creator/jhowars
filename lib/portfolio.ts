@@ -23,9 +23,10 @@ export type CmsProjectBlock = {
   mediaUrl?: string; externalUrl?: string; size?: string;
   images?: Array<{ _key: string; image?: string; alt?: string; caption?: string }>;
 };
-export type CmsProject = PortfolioProject & { summary?: string; client?: string; credits?: string; legacyUrl?: string; artworks?: CmsArtwork[]; contentBlocks?: CmsProjectBlock[] };
+export type CmsProject = PortfolioProject & { summary?: string; client?: string; credits?: string; legacyUrl?: string; archiveOrder?: number; showInProjects?: boolean; coverAspectRatio?: number; artworks?: CmsArtwork[]; contentBlocks?: CmsProjectBlock[] };
 export type CmsShopItem = { _id: string; title: string; slug?: string; artwork?: CmsArtwork; productImages: Array<{ _key: string; image?: string; alt?: string; caption?: string }>; image?: string; description?: string; descriptionPt?: string; technique?: string; dimensions?: string; edition?: string; price?: number; currency?: string; availability: "available" | "sold-out" | "coming-soon"; ramonaUrl?: string; externalUrl?: string; featured?: boolean; order?: number };
-export type AboutPage = { intro?: string; bio?: string; portrait?: string; circulation?: Array<{ name: string; organization?: string; city?: string; state?: string; years?: number[]; description?: string; link?: string }>; clients?: string[]; press?: string[]; additionalSections?: Array<{ heading?: string; body?: string }> };
+export type AboutPage = { creatorHeading?: string; circulationHeading?: string; intro?: string; bio?: string; portrait?: string; heroMedia?: { url: string; width?: number; height?: number }; heroMediaAlt?: string; circulation?: Array<{ name: string; organization?: string; city?: string; state?: string; years?: number[]; description?: string; link?: string }>; clients?: string[]; press?: string[]; additionalSections?: Array<{ heading?: string; body?: string }> };
+export type ProjectsPage = { eyebrow?: string; title?: string; optionalIntro?: string };
 export type SiteSettings = { artistName?: string; artistSubtitle?: string; locationLabel?: string; footerAvailability?: string; email?: string; instagram?: string; behance?: string; linkedin?: string; seoTitle?: string; seoDescription?: string; defaultOgImage?: string };
 
 const fallbackEnglishTitles: Record<string, string> = {
@@ -50,7 +51,7 @@ function fallbackProjectList(locale: Locale): CmsProject[] {
 export async function getProjects(locale: Locale = "pt"): Promise<CmsProject[]> {
   if (!client) return fallbackProjectList(locale);
   try {
-    const live = await client.fetch<CmsProject[]>(`*[_type == "project"] | order(year desc, title.pt asc){_id,_type,title,"slug":slug.current,year,category,summary,client,credits,legacyUrl,featured,"cover":coverImage.asset->url,"artworks":artworks[]->{_id,title,"image":coverImage.asset->url,altText,"projectSlug":project->slug.current},contentBlocks[]{...,"imageUrl":image.asset->url,"leftImageUrl":leftImage.asset->url,"rightImageUrl":rightImage.asset->url,"mediaUrl":media.asset->url,images[]{_key,alt,caption,"image":image.asset->url}}}`);
+    const live = await client.fetch<CmsProject[]>(`*[_type == "project"] | order(coalesce(archiveOrder, 9999) asc, year desc, title.pt asc){_id,_type,title,"slug":slug.current,year,category,summary,client,credits,legacyUrl,featured,archiveOrder,showInProjects,"cover":coverImage.asset->url,"coverAspectRatio":coverImage.asset->metadata.dimensions.aspectRatio,"artworks":artworks[]->{_id,title,"image":coverImage.asset->url,altText,"projectSlug":project->slug.current},contentBlocks[]{...,"imageUrl":image.asset->url,"leftImageUrl":leftImage.asset->url,"rightImageUrl":rightImage.asset->url,"mediaUrl":media.asset->url,images[]{_key,alt,caption,"image":image.asset->url}}}`);
     return localizeTree(live, locale);
   } catch { return fallbackProjectList(locale); }
 }
@@ -58,7 +59,7 @@ export async function getProjects(locale: Locale = "pt"): Promise<CmsProject[]> 
 export async function getProjectBySlug(slug: string, locale: Locale = "pt"): Promise<CmsProject | null> {
   if (client) {
     try {
-      const live = await client.fetch<CmsProject | null>(`*[_type == "project" && slug.current == $slug][0]{_id,_type,title,"slug":slug.current,year,category,summary,client,credits,legacyUrl,featured,"cover":coverImage.asset->url,"artworks":artworks[]->{_id,title,"image":coverImage.asset->url,altText,"projectSlug":project->slug.current},contentBlocks[]{...,"imageUrl":image.asset->url,"leftImageUrl":leftImage.asset->url,"rightImageUrl":rightImage.asset->url,"mediaUrl":media.asset->url,images[]{_key,alt,caption,"image":image.asset->url}}}`, { slug });
+      const live = await client.fetch<CmsProject | null>(`*[_type == "project" && slug.current == $slug][0]{_id,_type,title,"slug":slug.current,year,category,summary,client,credits,legacyUrl,featured,archiveOrder,showInProjects,"cover":coverImage.asset->url,"coverAspectRatio":coverImage.asset->metadata.dimensions.aspectRatio,"artworks":artworks[]->{_id,title,"image":coverImage.asset->url,altText,"projectSlug":project->slug.current},contentBlocks[]{...,"imageUrl":image.asset->url,"leftImageUrl":leftImage.asset->url,"rightImageUrl":rightImage.asset->url,"mediaUrl":media.asset->url,images[]{_key,alt,caption,"image":image.asset->url}}}`, { slug });
       return live ? localizeTree(live, locale) : null;
     }
     catch { /* Use the local record below while Sanity is unavailable. */ }
@@ -92,8 +93,20 @@ export async function getShopItems(locale: Locale = "pt"): Promise<CmsShopItem[]
 
 export async function getAboutPage(locale: Locale = "pt"): Promise<AboutPage | null> {
   if (!client) return localizeTree<AboutPage>(fallbackAboutPage as unknown as AboutPage, locale);
-  try { const live = await client.fetch<AboutPage | null>(`*[_type == "aboutPage" && _id == "about-page"][0]{intro,bio,"portrait":portrait.asset->url,circulation,clients,press,additionalSections}`); return live ? localizeTree(live, locale) : null; }
+  try { const live = await client.fetch<AboutPage | null>(`*[_type == "aboutPage" && _id == "about-page"][0]{creatorHeading,circulationHeading,intro,bio,"portrait":portrait.asset->url,"heroMedia":{"url":heroMedia.asset->url,"width":heroMedia.asset->metadata.dimensions.width,"height":heroMedia.asset->metadata.dimensions.height},heroMediaAlt,circulation,clients,press,additionalSections}`); return live ? localizeTree(live, locale) : null; }
   catch { return localizeTree<AboutPage>(fallbackAboutPage as unknown as AboutPage, locale); }
+}
+
+export async function getProjectsPage(locale: Locale = "pt"): Promise<ProjectsPage> {
+  if (client) {
+    try {
+      const live = await client.fetch<ProjectsPage | null>(`*[_type == "projectsPage" && _id == "projects-page"][0]{eyebrow,title,optionalIntro}`);
+      if (live) return localizeTree(live, locale);
+    } catch { /* Use the default labels while Sanity is unavailable. */ }
+  }
+  return locale === "en"
+    ? { eyebrow: "ARCHIVE", title: "PROJECTS" }
+    : { eyebrow: "ARQUIVO", title: "PROJETOS" };
 }
 
 export async function getSiteSettings(locale: Locale = "pt"): Promise<SiteSettings | null> {

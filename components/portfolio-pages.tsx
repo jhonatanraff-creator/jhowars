@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { ArtworkWall } from "@/components/artwork-wall";
 import { ProjectContentBlocks } from "@/components/project-content-blocks";
 import { copy, localizedHref, type Locale } from "@/lib/i18n";
-import { getAboutPage, getHomePosts, getProjectBySlug, getProjects, getShopItems, getSiteSettings } from "@/lib/portfolio";
+import { getAboutPage, getHomePosts, getProjectBySlug, getProjects, getProjectsPage, getShopItems, getSiteSettings } from "@/lib/portfolio";
 
 const projectPaths = { pt: "/projetos", en: "/en/projects" } as const;
 const detailPath = (locale: Locale, slug: string) => `${projectPaths[locale]}/${slug}`;
@@ -16,13 +16,21 @@ export async function HomeContent({ locale }: { locale: Locale }) {
 }
 
 export async function ProjectsContent({ locale }: { locale: Locale }) {
-  const projects = await getProjects(locale);
+  const [allProjects, page] = await Promise.all([getProjects(locale), getProjectsPage(locale)]);
+  const projects = allProjects.filter((project) => project.showInProjects !== false);
   const labels = copy[locale];
-  return <div className="page-shell"><header className="page-heading"><p className="eyebrow">{labels.archive}</p><h1>{labels.projects}</h1></header>
-    <section className="projects-grid" aria-label={labels.projects}>
-      {projects.map((project, index) => <Link key={project._id} href={detailPath(locale, project.slug)} className={`project-tile tile-${index % 4}`}>
-        <div className="tile-image"><Image src={project.cover} alt={project.title} fill sizes="(max-width: 700px) 90vw, 45vw" /></div>
-        <div className="tile-caption"><h2>{project.title}</h2>{project.year && <span>{project.year}</span>}</div>
+  return <div className="projects-index">
+    <header className="projects-page-heading">
+      <p className="eyebrow">{page.eyebrow || (locale === "en" ? "ARCHIVE" : "ARQUIVO")}</p>
+      <h1>{page.title || (locale === "en" ? "PROJECTS" : "PROJETOS")}</h1>
+      {page.optionalIntro && <p className="projects-page-intro">{page.optionalIntro}</p>}
+    </header>
+    <section className="project-index-grid" aria-label={page.title || labels.projects}>
+      {projects.map((project, index) => <Link key={project._id} href={detailPath(locale, project.slug)} className="project-index-item">
+        {project.cover && <figure className="project-index-image"><Image src={project.cover} alt={project.title} width={1600} height={1200} sizes="(max-width: 767px) 92vw, 45vw" priority={index === 0} /></figure>}
+        <div className="project-index-caption"><h2>{project.title}</h2>
+          {(project.category || project.year) && <p>{[project.category, project.year].filter(Boolean).join(" · ")}</p>}
+        </div>
       </Link>)}
     </section>
   </div>;
@@ -51,16 +59,23 @@ export async function ProjectDetailContent({ params, locale }: { params: Promise
 
 export async function AboutContent({ locale }: { locale: Locale }) {
   const about = await getAboutPage(locale);
-  const labels = copy[locale];
-  const paragraphs = about?.bio?.split("\n\n").filter(Boolean) ?? [];
+  const bioParagraphs = about?.bio?.split("\n\n").filter(Boolean) ?? [];
+  const intro = about?.intro || bioParagraphs[0];
+  const additionalBio = about?.intro ? bioParagraphs : bioParagraphs.slice(1);
+  const media = about?.heroMedia?.url;
+  const mediaAlt = about?.heroMediaAlt || (locale === "en" ? "Jhow.ars artwork" : "Trabalho de Jhow.ars");
   return <article className="about-page page-shell">
-    <p className="eyebrow">Jhow.ars · {locale === "en" ? "Visual artist & illustrator · Brazil" : "Artista visual e ilustrador · Brasil"}</p><h1>{labels.about}</h1>
-    {about?.portrait && <figure className="about-portrait"><Image src={about.portrait} alt={locale === "en" ? "Portrait of Jhow.ars" : "Retrato de Jhow.ars"} fill sizes="(max-width: 700px) 90vw, 40vw" /></figure>}
-    <div className="about-copy">{about?.intro && <p className="about-intro">{about.intro}</p>}{paragraphs.map((paragraph, index) => <p key={`${index}-${paragraph.slice(0, 20)}`}>{paragraph}</p>)}</div>
-    {about?.circulation?.length ? <section className="about-section"><p className="eyebrow">{labels.circulation}</p><ul className="circulation-list">{about.circulation.map((item, index) => <li key={`${item.name}-${index}`}><h2>{item.name}</h2><p>{[item.organization, [item.city, item.state].filter(Boolean).join(" · "), item.years?.join(", ")].filter(Boolean).join(" · ")}</p>{item.description && <p>{item.description}</p>}{item.link && <a href={item.link}>{item.link} ↗</a>}</li>)}</ul></section> : null}
-    {about?.clients?.length ? <section className="about-section"><p className="eyebrow">{labels.clients}</p><p>{about.clients.join(" · ")}</p></section> : null}
-    {about?.press?.length ? <section className="about-section"><p className="eyebrow">{labels.press}</p><ul>{about.press.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul></section> : null}
-    {about?.additionalSections?.map((section, index) => <section className="about-section" key={`${section.heading || "section"}-${index}`}><p className="eyebrow">{section.heading}</p><div className="additional-copy">{section.body?.split("\n").filter(Boolean).map((line, lineIndex) => <p key={`${lineIndex}-${line.slice(0, 20)}`}>{line}</p>)}</div></section>)}
+    <section className="about-introduction">
+      <h1>{about?.creatorHeading || (locale === "en" ? "who creates" : "quem cria")}</h1>
+      <div className="about-lead-grid">
+        {intro && <p className="about-lead-copy">{intro}</p>}
+        {(media || about?.portrait) && <figure className="about-hero-media">
+          {media ? <Image src={media} alt={mediaAlt} width={about?.heroMedia?.width || 1200} height={about?.heroMedia?.height || 1200} unoptimized priority sizes="(max-width: 767px) 92vw, 48vw" /> : <Image src={about!.portrait!} alt={mediaAlt} fill priority sizes="(max-width: 767px) 92vw, 48vw" />}
+        </figure>}
+      </div>
+      {additionalBio.length > 0 && <div className="about-supporting-copy">{additionalBio.map((paragraph, index) => <p key={`${index}-${paragraph.slice(0, 20)}`}>{paragraph}</p>)}</div>}
+    </section>
+    {about?.circulation?.length ? <section className="about-section circulation-section"><h2>{about.circulationHeading || (locale === "en" ? "circulation" : "circulação")}</h2><ul className="circulation-list">{about.circulation.map((item, index) => <li key={`${item.name}-${index}`}><h3>{item.name}</h3>{item.organization && <p className="circulation-organization">{item.organization}</p>}{item.description && <p className="circulation-description">{item.description}</p>}<p className="circulation-meta">{[[item.city, item.state].filter(Boolean).join(" · "), item.years?.join(", ")].filter(Boolean).join(" · ")}</p>{item.link && <a href={item.link}>{item.link} ↗</a>}</li>)}</ul></section> : null}
   </article>;
 }
 
@@ -82,10 +97,10 @@ export async function ShopContent({ locale }: { locale: Locale }) {
 
 export async function pageMetadata(locale: Locale, page: "projects" | "about" | "shop"): Promise<Metadata> {
   const labels = copy[locale];
-  const settings = await getSiteSettings(locale);
+  const [settings, projectsPage] = await Promise.all([getSiteSettings(locale), page === "projects" ? getProjectsPage(locale) : Promise.resolve(null)]);
   const ptPaths = { projects: "/projetos", about: "/sobre", shop: "/shop" };
   const enPaths = { projects: "/en/projects", about: "/en/about", shop: "/en/shop" };
-  const title = page === "projects" ? labels.projects : page === "about" ? labels.about : labels.shop;
+  const title = page === "projects" ? projectsPage?.title || labels.projects : page === "about" ? labels.about : labels.shop;
   return { title, description: settings?.seoDescription, alternates: canonical(ptPaths[page], enPaths[page], locale) };
 }
 

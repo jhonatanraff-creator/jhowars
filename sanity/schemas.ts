@@ -49,11 +49,13 @@ const circulationItem = defineType({ name: "circulationItem", title: "Item de ci
 
 const project = defineType({
   name: "project", title: "Projeto", type: "document",
-  orderings: [{ title: "Ano (mais recente)", name: "yearDesc", by: [{ field: "year", direction: "desc" }] }, { title: "Título", name: "titleAsc", by: [{ field: "title.pt", direction: "asc" }] }],
+  orderings: [{ title: "Ordem do arquivo", name: "archiveOrder", by: [{ field: "archiveOrder", direction: "asc" }] }, { title: "Ano (mais recente)", name: "yearDesc", by: [{ field: "year", direction: "desc" }] }, { title: "Título", name: "titleAsc", by: [{ field: "title.pt", direction: "asc" }] }],
   fields: [
     defineField({ name: "title", title: "Título", type: "localizedString", validation: (r) => r.required() }),
     defineField({ name: "slug", title: "Slug", type: "slug", options: { source: "title" }, validation: (r) => r.required() }),
     defineField({ name: "year", title: "Ano", type: "number" }), defineField({ name: "category", title: "Categoria", type: "localizedString" }),
+    defineField({ name: "archiveOrder", title: "Ordem no arquivo", type: "number", description: "Número menor aparece antes no índice de Projetos. Em branco, o projeto fica após os itens ordenados." }),
+    defineField({ name: "showInProjects", title: "Mostrar no índice de Projetos", type: "boolean", initialValue: true, description: "Desative para ocultar do índice sem apagar o projeto ou sua página interna." }),
     defineField({ name: "coverImage", title: "Capa", type: "image", options: { hotspot: true } }),
     defineField({ name: "summary", title: "Resumo legado", type: "localizedText" }), defineField({ name: "client", title: "Cliente", type: "localizedString" }),
     defineField({ name: "credits", title: "Créditos", type: "localizedText" }), defineField({ name: "legacyUrl", title: "URL antiga", type: "url" }),
@@ -114,10 +116,20 @@ const shopItem = defineType({
 });
 
 const aboutPage = defineType({ name: "aboutPage", title: "Página Sobre", type: "document", fields: [
+  defineField({ name: "creatorHeading", title: "Título da apresentação", type: "localizedString", description: "Título exibido acima da apresentação, em cada idioma." }),
+  defineField({ name: "circulationHeading", title: "Título da circulação", type: "localizedString", description: "Título exibido acima da lista de circulação, em cada idioma." }),
   defineField({ name: "intro", title: "Introdução", type: "localizedText" }), defineField({ name: "bio", title: "Biografia", type: "localizedText" }), defineField({ name: "portrait", title: "Retrato", type: "image", options: { hotspot: true } }),
+  defineField({ name: "heroMedia", title: "Mídia principal (imagem ou GIF)", type: "file", description: "Arquivo visual ao lado do texto de apresentação. Use este campo para GIFs animados; o retrato existente continua disponível." }),
+  defineField({ name: "heroMediaAlt", title: "Texto alternativo da mídia principal", type: "localizedString" }),
   defineField({ name: "circulation", title: "Circulação", type: "array", of: [{ type: "circulationItem" }] }),
   defineField({ name: "clients", title: "Clientes", type: "array", of: [{ type: "localizedString" }] }), defineField({ name: "press", title: "Imprensa", type: "array", of: [{ type: "localizedString" }] }), defineField({ name: "additionalSections", title: "Seções adicionais", type: "array", of: [{ type: "object", fields: [defineField({ name: "heading", title: "Título", type: "localizedString" }), defineField({ name: "body", title: "Conteúdo", type: "localizedText" })] }] }),
   defineField({ name: "migrationFingerprint", title: "Controle da migração", type: "string", readOnly: true, hidden: true }),
+] });
+
+const projectsPage = defineType({ name: "projectsPage", title: "Página Projetos", type: "document", fields: [
+  defineField({ name: "eyebrow", title: "Identificação acima do título", type: "localizedString", initialValue: { pt: "ARQUIVO", en: "ARCHIVE" } }),
+  defineField({ name: "title", title: "Título", type: "localizedString", initialValue: { pt: "PROJETOS", en: "PROJECTS" }, validation: (r) => r.required() }),
+  defineField({ name: "optionalIntro", title: "Introdução (opcional)", type: "localizedText", description: "Deixe em branco para não exibir texto de introdução." }),
 ] });
 
 const siteSettings = defineType({ name: "siteSettings", title: "Configurações do site", type: "document", fields: [
@@ -127,4 +139,4 @@ const siteSettings = defineType({ name: "siteSettings", title: "Configurações 
   defineField({ name: "migrationFingerprint", title: "Controle da migração", type: "string", readOnly: true, hidden: true }),
 ] });
 
-export const schemaTypes = [localizedString, localizedText, imageEntry, textBlock, imageBlock, galleryBlock, twoImagesBlock, fullWidthImageBlock, mediaBlock, captionBlock, spacerBlock, circulationItem, homePost, artwork, project, shopItem, aboutPage, siteSettings];
+export const schemaTypes = [localizedString, localizedText, imageEntry, textBlock, imageBlock, galleryBlock, twoImagesBlock, fullWidthImageBlock, mediaBlock, captionBlock, spacerBlock, circulationItem, homePost, artwork, project, shopItem, projectsPage, aboutPage, siteSettings];

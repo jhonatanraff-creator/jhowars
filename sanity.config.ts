@@ -9,7 +9,10 @@ const deskStructure = (S: StructureBuilder) =>
   S.list().title("Jhow.ars").items([
     S.listItem().title("HOME").child(S.documentTypeList("homePost").title("Publicações da Home").defaultOrdering([{ field: "internalName", direction: "asc" }])),
     S.listItem().title("OBRAS").child(S.documentTypeList("artwork").title("Todas as obras")),
-    S.listItem().title("PROJETOS").child(S.documentTypeList("project").title("Todos os projetos")),
+    S.listItem().title("PROJETOS").child(S.list().title("Projetos").items([
+      singleton(S, "projectsPage", "projects-page", "Página Projetos"),
+      S.listItem().title("Todos os projetos").child(S.documentTypeList("project").title("Todos os projetos").defaultOrdering([{ field: "archiveOrder", direction: "asc" }])),
+    ])),
     S.listItem().title("SHOP").child(S.list().title("Produtos").items([
       S.listItem().title("Todos os produtos").child(S.documentTypeList("shopItem").title("Todos os produtos")),
       S.listItem().title("Disponíveis").child(S.documentTypeList("shopItem").title("Disponíveis").filter('_type == "shopItem" && availability == "available"')),

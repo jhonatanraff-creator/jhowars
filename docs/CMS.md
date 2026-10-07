@@ -25,7 +25,11 @@ Em **OBRAS → Todas as obras**, edite título, descrição, técnica, edição 
 
 ## Projetos
 
+Em **PROJETOS → Página Projetos**, edite a identificação acima do título e o título em Português e English. A introdução é opcional e pode ficar vazia.
+
 Em **PROJETOS → Todos os projetos**, mantenha o slug técnico, ano, capa e relações. Título, categoria, resumo, cliente, créditos e texto dos blocos possuem idiomas separados. Os blocos de conteúdo podem ser editados e reordenados no array. Imagens e arquivos de mídia permanecem compartilhados entre idiomas; alt e legendas são localizados.
+
+Na lista de projetos, `Capa` controla a imagem do índice. `Ordem no arquivo` usa números: valores menores aparecem primeiro; para reordenar, ajuste os números. `Mostrar no índice de Projetos` oculta o item do índice sem apagar o documento nem sua página interna. Título e categoria devem ser preenchidos no idioma correspondente.
 
 ## Shop
 
@@ -33,7 +37,11 @@ Em **SHOP**, cadastre somente produtos confirmados. Título, descrição, técni
 
 ## Sobre
 
-Em **SOBRE · Página Sobre**, edite introdução, bio, descrições de circulação e seções adicionais em PT/EN. Retrato, nomes próprios, cidades, anos e links são compartilhados.
+Em **SOBRE · Página Sobre**, edite os títulos de apresentação e circulação, introdução, bio e descrições em Português e English. Use **Mídia principal (imagem ou GIF)** para trocar o arquivo ao lado da apresentação; o campo Retrato existente continua disponível. Os textos alternativos da mídia são localizados.
+
+Na página, o primeiro parágrafo da apresentação fica em **Introdução**; os parágrafos complementares ficam em **Biografia**. A migração preserva o texto original ao separar esses campos.
+
+Os eventos em **Circulação** aparecem na mesma ordem do array do CMS. Adicione ou remova itens pelo array; use arrastar e soltar para reordenar. Nome, organização, cidade, estado, anos e link são compartilhados; descrição é localizada.
 
 ## Site
 
