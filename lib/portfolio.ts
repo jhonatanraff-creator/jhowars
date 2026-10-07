@@ -18,12 +18,15 @@ export type HomePost = {
 export type CmsArtwork = PortfolioArtwork & { year?: number; technique?: string; dimensions?: string; edition?: string; description?: string; status?: string; images?: Array<{ _key: string; image?: string; alt?: string; caption?: string }> };
 export type CmsProjectBlock = {
   _key?: string; _type: string; heading?: string; body?: string; widthStyle?: "small" | "medium" | "large" | "full";
-  imageUrl?: string; alt?: string; caption?: string; leftImageUrl?: string; rightImageUrl?: string;
+  alignment?: "left" | "center" | "right"; spacingTop?: "none" | "small" | "medium" | "large"; spacingBottom?: "none" | "small" | "medium" | "large";
+  layout?: "grid" | "row" | "stack"; columnsDesktop?: number; columnsTablet?: number; columnsMobile?: number; gap?: "small" | "medium" | "large";
+  imageUrl?: string; imageAspectRatio?: number; alt?: string; caption?: string; leftImageUrl?: string; leftImageAspectRatio?: number; rightImageUrl?: string; rightImageAspectRatio?: number;
   leftAlt?: string; rightAlt?: string; leftCaption?: string; rightCaption?: string;
   mediaUrl?: string; externalUrl?: string; size?: string;
-  images?: Array<{ _key: string; image?: string; alt?: string; caption?: string }>;
+  images?: Array<{ _key: string; image?: string; aspectRatio?: number; alt?: string; caption?: string }>;
 };
-export type CmsProject = PortfolioProject & { summary?: string; client?: string; credits?: string; legacyUrl?: string; archiveOrder?: number; showInProjects?: boolean; coverAspectRatio?: number; artworks?: CmsArtwork[]; contentBlocks?: CmsProjectBlock[] };
+export type CmsRelatedProject = { _id: string; title: string; slug: string; year?: number; category?: string; cover?: string; coverAspectRatio?: number };
+export type CmsProject = PortfolioProject & { summary?: string; client?: string; credits?: string; legacyUrl?: string; archiveOrder?: number; showInProjects?: boolean; contentLayout?: "standard" | "editorial-sequence"; coverAspectRatio?: number; artworks?: CmsArtwork[]; contentBlocks?: CmsProjectBlock[]; relatedProjects?: CmsRelatedProject[] };
 export type CmsShopItem = { _id: string; title: string; slug?: string; artwork?: CmsArtwork; productImages: Array<{ _key: string; image?: string; alt?: string; caption?: string }>; image?: string; description?: string; descriptionPt?: string; technique?: string; dimensions?: string; edition?: string; price?: number; currency?: string; availability: "available" | "sold-out" | "coming-soon"; ramonaUrl?: string; externalUrl?: string; featured?: boolean; order?: number };
 export type AboutPage = { creatorHeading?: string; circulationHeading?: string; intro?: string; bio?: string; portrait?: string; heroMedia?: { url: string; width?: number; height?: number }; heroMediaAlt?: string; circulation?: Array<{ name: string; organization?: string; city?: string; state?: string; years?: number[]; description?: string; link?: string }>; clients?: string[]; press?: string[]; additionalSections?: Array<{ heading?: string; body?: string }> };
 export type ProjectsPage = { eyebrow?: string; title?: string; optionalIntro?: string };
@@ -51,7 +54,7 @@ function fallbackProjectList(locale: Locale): CmsProject[] {
 export async function getProjects(locale: Locale = "pt"): Promise<CmsProject[]> {
   if (!client) return fallbackProjectList(locale);
   try {
-    const live = await client.fetch<CmsProject[]>(`*[_type == "project"] | order(coalesce(archiveOrder, 9999) asc, year desc, title.pt asc){_id,_type,title,"slug":slug.current,year,category,summary,client,credits,legacyUrl,featured,archiveOrder,showInProjects,"cover":coverImage.asset->url,"coverAspectRatio":coverImage.asset->metadata.dimensions.aspectRatio,"artworks":artworks[]->{_id,title,"image":coverImage.asset->url,altText,"projectSlug":project->slug.current},contentBlocks[]{...,"imageUrl":image.asset->url,"leftImageUrl":leftImage.asset->url,"rightImageUrl":rightImage.asset->url,"mediaUrl":media.asset->url,images[]{_key,alt,caption,"image":image.asset->url}}}`);
+    const live = await client.fetch<CmsProject[]>(`*[_type == "project"] | order(coalesce(archiveOrder, 9999) asc, year desc, title.pt asc){_id,_type,title,"slug":slug.current,year,category,summary,client,credits,legacyUrl,featured,archiveOrder,showInProjects,contentLayout,"cover":coverImage.asset->url,"coverAspectRatio":coverImage.asset->metadata.dimensions.aspectRatio,"artworks":artworks[]->{_id,title,"image":coverImage.asset->url,altText,"projectSlug":project->slug.current},contentBlocks[]{...,"imageUrl":image.asset->url,"imageAspectRatio":image.asset->metadata.dimensions.aspectRatio,"leftImageUrl":leftImage.asset->url,"leftImageAspectRatio":leftImage.asset->metadata.dimensions.aspectRatio,"rightImageUrl":rightImage.asset->url,"rightImageAspectRatio":rightImage.asset->metadata.dimensions.aspectRatio,"mediaUrl":media.asset->url,images[]{_key,alt,caption,"image":image.asset->url,"aspectRatio":image.asset->metadata.dimensions.aspectRatio}}}`);
     return localizeTree(live, locale);
   } catch { return fallbackProjectList(locale); }
 }
@@ -59,7 +62,7 @@ export async function getProjects(locale: Locale = "pt"): Promise<CmsProject[]> 
 export async function getProjectBySlug(slug: string, locale: Locale = "pt"): Promise<CmsProject | null> {
   if (client) {
     try {
-      const live = await client.fetch<CmsProject | null>(`*[_type == "project" && slug.current == $slug][0]{_id,_type,title,"slug":slug.current,year,category,summary,client,credits,legacyUrl,featured,archiveOrder,showInProjects,"cover":coverImage.asset->url,"coverAspectRatio":coverImage.asset->metadata.dimensions.aspectRatio,"artworks":artworks[]->{_id,title,"image":coverImage.asset->url,altText,"projectSlug":project->slug.current},contentBlocks[]{...,"imageUrl":image.asset->url,"leftImageUrl":leftImage.asset->url,"rightImageUrl":rightImage.asset->url,"mediaUrl":media.asset->url,images[]{_key,alt,caption,"image":image.asset->url}}}`, { slug });
+      const live = await client.fetch<CmsProject | null>(`*[_type == "project" && slug.current == $slug][0]{_id,_type,title,"slug":slug.current,year,category,summary,client,credits,legacyUrl,featured,archiveOrder,showInProjects,contentLayout,"cover":coverImage.asset->url,"coverAspectRatio":coverImage.asset->metadata.dimensions.aspectRatio,"artworks":artworks[]->{_id,title,"image":coverImage.asset->url,altText,"projectSlug":project->slug.current},"relatedProjects":relatedProjects[]->{_id,_type,title,"slug":slug.current,year,category,"cover":coverImage.asset->url,"coverAspectRatio":coverImage.asset->metadata.dimensions.aspectRatio},contentBlocks[]{...,"imageUrl":image.asset->url,"imageAspectRatio":image.asset->metadata.dimensions.aspectRatio,"leftImageUrl":leftImage.asset->url,"leftImageAspectRatio":leftImage.asset->metadata.dimensions.aspectRatio,"rightImageUrl":rightImage.asset->url,"rightImageAspectRatio":rightImage.asset->metadata.dimensions.aspectRatio,"mediaUrl":media.asset->url,images[]{_key,alt,caption,"image":image.asset->url,"aspectRatio":image.asset->metadata.dimensions.aspectRatio}}}`, { slug });
       return live ? localizeTree(live, locale) : null;
     }
     catch { /* Use the local record below while Sanity is unavailable. */ }

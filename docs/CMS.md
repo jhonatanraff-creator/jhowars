@@ -31,6 +31,32 @@ Em **PROJETOS → Todos os projetos**, mantenha o slug técnico, ano, capa e rel
 
 Na lista de projetos, `Capa` controla a imagem do índice. `Ordem no arquivo` usa números: valores menores aparecem primeiro; para reordenar, ajuste os números. `Mostrar no índice de Projetos` oculta o item do índice sem apagar o documento nem sua página interna. Título e categoria devem ser preenchidos no idioma correspondente.
 
+### Páginas individuais e sequência editorial
+
+- `Apresentação do conteúdo = Sequência editorial` faz a página usar somente a ordem de `contentBlocks`, sem inserir antes uma capa e um título genéricos. `Padrão do site` mantém a estrutura comum.
+- Em `Conteúdo do projeto`, arraste os blocos para reordená-los. A ordem do array é a ordem da página em PT e EN.
+- Em **Texto**, edite `Título (opcional)` e `Texto` nos campos Português e English. `Largura do texto`, `Alinhamento`, `Espaço antes` e `Espaço depois` são opções controladas.
+- Em **Imagem**, use `Imagem`, alt/legenda localizados e as opções de largura, alinhamento e espaçamento. A proporção original do asset é preservada.
+- Em **Galeria / coleção de mídia**, as imagens são um único grupo: arraste para reordenar internamente. `Composição`, colunas desktop/tablet/mobile, espaço, largura e alinhamento controlam o agrupamento. Para remover, apague o item no array de imagens; para adicionar, use o final do array.
+- Em **Duas imagens**, cada lado tem sua imagem, alt e legenda; em telas estreitas elas empilham.
+- Em **Mídia (GIF/vídeo)**, escolha um arquivo ou informe a URL externa disponível. O bloco permanece na posição do array. Confira URLs assinadas antes de depender delas por longo prazo.
+- Use **Outros projetos (até 3)** para escolher recomendações manuais. Não selecione o próprio projeto. Se o array ficar vazio, o site usa até três projetos visíveis pela ordem do arquivo.
+
+O script específico de sequência não recria documentos, não apaga assets e não faz upload de cópias. O modo padrão é somente leitura:
+
+```powershell
+npm run sanity:project-layouts -- --dry-run
+```
+
+Após revisar o relatório e confirmar que todos os assets estão resolvidos, a gravação requer confirmação explícita:
+
+```powershell
+$env:SANITY_PROJECT_LAYOUT_MIGRATION_CONFIRM='YES'
+npm run sanity:project-layouts -- --commit --allow-production
+```
+
+O script grava apenas `contentBlocks`, `contentLayout`, `relatedProjects` e o fingerprint da migração nos cinco projetos mapeados. Fingerprints já existentes diferentes são preservados para revisão manual.
+
 ## Shop
 
 Em **SHOP**, cadastre somente produtos confirmados. Título, descrição, técnica, edição e alt possuem PT/EN. Fotos, preço, disponibilidade, dimensões e URL Ramona são campos próprios do produto. Disponibilidade seleciona as listas **Disponíveis**, **Esgotados** e **Em breve**. Não há checkout integrado.

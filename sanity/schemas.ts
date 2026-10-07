@@ -24,22 +24,50 @@ const imageEntry = defineType({
 const textBlock = defineType({ name: "textBlock", title: "Texto", type: "object", fields: [
   defineField({ name: "heading", title: "Título (opcional)", type: "localizedString" }),
   defineField({ name: "body", title: "Texto", type: "localizedText", validation: (r) => r.required() }),
+  defineField({ name: "widthStyle", title: "Largura do texto", type: "string", description: "Controla a largura editorial do texto sem alterar sua sequência.", options: { list: ["small", "medium", "large", "full"] }, initialValue: "medium" }),
+  defineField({ name: "alignment", title: "Alinhamento", type: "string", options: { list: ["left", "center", "right"] }, initialValue: "center" }),
+  defineField({ name: "spacingTop", title: "Espaço antes", type: "string", options: { list: ["none", "small", "medium", "large"] }, initialValue: "medium" }),
+  defineField({ name: "spacingBottom", title: "Espaço depois", type: "string", options: { list: ["none", "small", "medium", "large"] }, initialValue: "medium" }),
 ] });
 const imageBlock = defineType({ name: "imageBlock", title: "Imagem", type: "object", fields: [
   defineField({ name: "image", title: "Imagem", type: "image", options: { hotspot: true }, validation: (r) => r.required() }),
   defineField({ name: "alt", title: "Texto alternativo", type: "localizedString" }), defineField({ name: "caption", title: "Legenda", type: "localizedString" }),
   defineField({ name: "widthStyle", title: "Largura", type: "string", options: { list: ["small", "medium", "large", "full"] }, initialValue: "full" }),
+  defineField({ name: "alignment", title: "Alinhamento", type: "string", options: { list: ["left", "center", "right"] }, initialValue: "center" }),
+  defineField({ name: "spacingTop", title: "Espaço antes", type: "string", options: { list: ["none", "small", "medium", "large"] }, initialValue: "medium" }),
+  defineField({ name: "spacingBottom", title: "Espaço depois", type: "string", options: { list: ["none", "small", "medium", "large"] }, initialValue: "medium" }),
 ] });
-const galleryBlock = defineType({ name: "galleryBlock", title: "Galeria", type: "object", fields: [defineField({ name: "images", title: "Imagens", type: "array", of: [{ type: "imageEntry" }], validation: (r) => r.min(1) })] });
+const galleryBlock = defineType({ name: "galleryBlock", title: "Galeria / coleção de mídia", type: "object", fields: [
+  defineField({ name: "images", title: "Imagens (reordenáveis)", type: "array", of: [{ type: "imageEntry" }], validation: (r) => r.min(1) }),
+  defineField({ name: "layout", title: "Composição", type: "string", description: "Mantém estas imagens como um único módulo editorial.", options: { list: [{ title: "Grade", value: "grid" }, { title: "Linha", value: "row" }, { title: "Empilhadas", value: "stack" }] }, initialValue: "grid" }),
+  defineField({ name: "columnsDesktop", title: "Colunas — desktop", type: "number", options: { list: [2, 3, 4, 5] }, initialValue: 3 }),
+  defineField({ name: "columnsTablet", title: "Colunas — tablet", type: "number", options: { list: [1, 2, 3, 4] }, initialValue: 2 }),
+  defineField({ name: "columnsMobile", title: "Colunas — mobile", type: "number", options: { list: [1, 2] }, initialValue: 1 }),
+  defineField({ name: "gap", title: "Espaço entre imagens", type: "string", options: { list: ["small", "medium", "large"] }, initialValue: "small" }),
+  defineField({ name: "widthStyle", title: "Largura do grupo", type: "string", options: { list: ["small", "medium", "large", "full"] }, initialValue: "full" }),
+  defineField({ name: "alignment", title: "Alinhamento", type: "string", options: { list: ["left", "center", "right"] }, initialValue: "center" }),
+  defineField({ name: "spacingTop", title: "Espaço antes", type: "string", options: { list: ["none", "small", "medium", "large"] }, initialValue: "medium" }),
+  defineField({ name: "spacingBottom", title: "Espaço depois", type: "string", options: { list: ["none", "small", "medium", "large"] }, initialValue: "medium" }),
+] });
 const twoImagesBlock = defineType({ name: "twoImagesBlock", title: "Duas imagens", type: "object", fields: [
   ...["leftImage", "rightImage"].map((name) => defineField({ name, title: name === "leftImage" ? "Imagem esquerda" : "Imagem direita", type: "image", options: { hotspot: true }, validation: (r) => r.required() })),
   ...["leftAlt", "rightAlt", "leftCaption", "rightCaption"].map((name) => defineField({ name, title: name, type: "localizedString" })),
+  defineField({ name: "widthStyle", title: "Largura", type: "string", options: { list: ["small", "medium", "large", "full"] }, initialValue: "full" }),
+  defineField({ name: "alignment", title: "Alinhamento", type: "string", options: { list: ["left", "center", "right"] }, initialValue: "center" }),
+  defineField({ name: "spacingTop", title: "Espaço antes", type: "string", options: { list: ["none", "small", "medium", "large"] }, initialValue: "medium" }),
+  defineField({ name: "spacingBottom", title: "Espaço depois", type: "string", options: { list: ["none", "small", "medium", "large"] }, initialValue: "medium" }),
 ] });
 const fullWidthImageBlock = defineType({ name: "fullWidthImageBlock", title: "Imagem largura total", type: "object", fields: [
   defineField({ name: "image", title: "Imagem", type: "image", options: { hotspot: true }, validation: (r) => r.required() }), defineField({ name: "alt", title: "Texto alternativo", type: "localizedString" }), defineField({ name: "caption", title: "Legenda", type: "localizedString" }),
+  defineField({ name: "spacingTop", title: "Espaço antes", type: "string", options: { list: ["none", "small", "medium", "large"] }, initialValue: "medium" }),
+  defineField({ name: "spacingBottom", title: "Espaço depois", type: "string", options: { list: ["none", "small", "medium", "large"] }, initialValue: "medium" }),
 ] });
 const mediaBlock = defineType({ name: "mediaBlock", title: "Mídia (GIF/vídeo)", type: "object", fields: [
   defineField({ name: "media", title: "Arquivo", type: "file" }), defineField({ name: "externalUrl", title: "URL externa, se o arquivo não estiver disponível", type: "url" }), defineField({ name: "alt", title: "Texto alternativo", type: "localizedString" }), defineField({ name: "caption", title: "Legenda", type: "localizedString" }),
+  defineField({ name: "widthStyle", title: "Largura", type: "string", options: { list: ["small", "medium", "large", "full"] }, initialValue: "full" }),
+  defineField({ name: "alignment", title: "Alinhamento", type: "string", options: { list: ["left", "center", "right"] }, initialValue: "center" }),
+  defineField({ name: "spacingTop", title: "Espaço antes", type: "string", options: { list: ["none", "small", "medium", "large"] }, initialValue: "medium" }),
+  defineField({ name: "spacingBottom", title: "Espaço depois", type: "string", options: { list: ["none", "small", "medium", "large"] }, initialValue: "medium" }),
 ] });
 const captionBlock = defineType({ name: "captionBlock", title: "Legenda", type: "object", fields: [defineField({ name: "body", title: "Legenda", type: "localizedText" })] });
 const spacerBlock = defineType({ name: "spacerBlock", title: "Espaçador", type: "object", fields: [defineField({ name: "size", title: "Tamanho", type: "string", options: { list: ["small", "medium", "large"] }, initialValue: "medium" })] });
@@ -56,12 +84,18 @@ const project = defineType({
     defineField({ name: "year", title: "Ano", type: "number" }), defineField({ name: "category", title: "Categoria", type: "localizedString" }),
     defineField({ name: "archiveOrder", title: "Ordem no arquivo", type: "number", description: "Número menor aparece antes no índice de Projetos. Em branco, o projeto fica após os itens ordenados." }),
     defineField({ name: "showInProjects", title: "Mostrar no índice de Projetos", type: "boolean", initialValue: true, description: "Desative para ocultar do índice sem apagar o projeto ou sua página interna." }),
+    defineField({ name: "contentLayout", title: "Apresentação do conteúdo", type: "string", description: "Use sequência editorial para páginas cujos contentBlocks reproduzem a ordem modular do material legado. Padrão mantém o cabeçalho e a capa do layout atual.", options: { list: [{ title: "Padrão do site", value: "standard" }, { title: "Sequência editorial", value: "editorial-sequence" }] }, initialValue: "standard" }),
     defineField({ name: "coverImage", title: "Capa", type: "image", options: { hotspot: true } }),
     defineField({ name: "summary", title: "Resumo legado", type: "localizedText" }), defineField({ name: "client", title: "Cliente", type: "localizedString" }),
     defineField({ name: "credits", title: "Créditos", type: "localizedText" }), defineField({ name: "legacyUrl", title: "URL antiga", type: "url" }),
     defineField({ name: "artworks", title: "Obras relacionadas", type: "array", of: [{ type: "reference", to: [{ type: "artwork" }] }] }),
+    defineField({ name: "relatedProjects", title: "Outros projetos (até 3)", type: "array", description: "Seleção manual que aparece depois deste projeto. Se ficar vazia, o site usa os próximos projetos visíveis em ordem do arquivo.", of: [{ type: "reference", to: [{ type: "project" }] }], validation: (r) => r.max(3).unique().custom((items, context) => {
+      const ownId = String(context.document?._id || "").replace(/^drafts\./, "");
+      return ((items || []) as Array<{ _ref?: string }>).some((item) => String(item?._ref || "").replace(/^drafts\./, "") === ownId) ? "Um projeto não pode recomendar a si mesmo." : true;
+    }) }),
     defineField({ name: "contentBlocks", title: "Conteúdo do projeto", type: "array", of: [{ type: "textBlock" }, { type: "imageBlock" }, { type: "galleryBlock" }, { type: "twoImagesBlock" }, { type: "fullWidthImageBlock" }, { type: "mediaBlock" }, { type: "captionBlock" }, { type: "spacerBlock" }] }),
     defineField({ name: "migrationFingerprint", title: "Controle da migração", type: "string", readOnly: true, hidden: true }),
+    defineField({ name: "legacyLayoutFingerprint", title: "Controle da sequência legada", type: "string", readOnly: true, hidden: true }),
   ],
   preview: { select: { title: "title.pt", subtitle: "category.pt", media: "coverImage", year: "year" }, prepare: ({ title, subtitle, media, year }) => ({ title: title || "Projeto sem título", subtitle: [subtitle, year].filter(Boolean).join(" · "), media }) },
 });

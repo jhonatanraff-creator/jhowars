@@ -38,22 +38,38 @@ export async function ProjectsContent({ locale }: { locale: Locale }) {
 
 export async function ProjectDetailContent({ params, locale }: { params: Promise<{ slug: string }>; locale: Locale }) {
   const { slug } = await params;
-  const project = await getProjectBySlug(slug, locale);
+  const [project, allProjects] = await Promise.all([getProjectBySlug(slug, locale), getProjects(locale)]);
   if (!project) notFound();
   const labels = copy[locale];
   const blocks = project.contentBlocks ?? [];
   const gallery = project.artworks?.filter((artwork) => artwork.image && artwork.image !== project.cover) ?? [];
   const description = project.summary || project.descriptionPt || project.descriptionEn;
-  return <article className="detail-page page-shell">
-    <Link className="back-link" href={localizedHref("/projetos", locale)}>← {labels.projects}</Link>
-    <header className="detail-heading"><p className="eyebrow">{project.category ?? labels.projects}{project.year ? ` · ${project.year}` : ""}</p><h1>{project.title}</h1></header>
-    {project.cover && <figure className="detail-cover"><Image src={project.cover} alt={project.title} fill sizes="96vw" priority /></figure>}
+  const manualRelated = (project.relatedProjects || []).filter((item) => item._id !== project._id).slice(0, 3);
+  const fallbackRelated = allProjects.filter((item) => item._id !== project._id && item.showInProjects !== false).slice(0, 3);
+  const relatedProjects = manualRelated.length ? manualRelated : fallbackRelated;
+  const editorialSequence = project.contentLayout === "editorial-sequence";
+  return <article className={`detail-page page-shell${editorialSequence ? " project-detail--editorial-sequence" : ""}`}>
+    {!editorialSequence && <>
+      <Link className="back-link" href={localizedHref("/projetos", locale)}>← {labels.projects}</Link>
+      <header className="detail-heading"><p className="eyebrow">{project.category ?? labels.projects}{project.year ? ` · ${project.year}` : ""}</p><h1>{project.title}</h1></header>
+      {project.cover && <figure className="detail-cover"><Image src={project.cover} alt={project.title} fill sizes="96vw" priority /></figure>}
+    </>}
     {blocks.length > 0 ? <ProjectContentBlocks blocks={blocks} /> : <>
       {gallery.length > 0 && <section className="detail-gallery" aria-label={locale === "en" ? `More images from ${project.title}` : `Mais imagens de ${project.title}`}>
         {gallery.map((artwork) => <figure key={artwork._id}><Image src={artwork.image} alt={artwork.alt || artwork.title} fill sizes="(max-width: 700px) 90vw, 44vw" /><figcaption>{artwork.title}</figcaption></figure>)}
       </section>}
       {description && <section className="detail-copy"><div>{description.split("\n\n").map((paragraph, index) => <p key={`${index}-${paragraph.slice(0, 20)}`}>{paragraph}</p>)}</div></section>}
     </>}
+    {relatedProjects.length > 0 && <section className="related-projects" aria-labelledby="related-projects-title">
+      <h2 id="related-projects-title">{locale === "en" ? "YOU MAY ALSO LIKE" : "OUTROS PROJETOS"}</h2>
+      <div className="related-projects-grid">
+        {relatedProjects.map((item) => <Link className="related-project" key={item._id} href={detailPath(locale, item.slug)}>
+          {item.cover && <figure className="related-project-image" style={item.coverAspectRatio ? { aspectRatio: String(item.coverAspectRatio) } : undefined}><Image src={item.cover} alt="" fill sizes="(max-width: 700px) 92vw, 30vw" /></figure>}
+          <h3>{item.title}</h3>
+          {(item.category || item.year) && <p>{[item.category, item.year].filter(Boolean).join(" · ")}</p>}
+        </Link>)}
+      </div>
+    </section>}
   </article>;
 }
 

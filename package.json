@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "cms:seed": "node --experimental-strip-types scripts/seed-sanity.mjs",
     "sanity:seed": "node --experimental-strip-types scripts/seed-sanity.mjs",
+    "sanity:project-layouts": "node scripts/migrate-legacy-project-layouts.mjs",
     "sanity:i18n-migrate": "node scripts/migrate-i18n.mjs",
     "sanity:i18n-verify": "node scripts/verify-i18n.mjs"
   },
