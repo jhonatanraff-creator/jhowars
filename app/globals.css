@@ -125,3 +125,56 @@ body:has(.home-page)>main{min-height:0;overflow:hidden}
 }
 @media(min-width:621px) and (max-width:800px){.art-scene+.art-scene{margin-top:clamp(-76px,-8vw,-46px)}}
 @media(prefers-reduced-motion:reduce){.art-viewport{scroll-behavior:auto}}
+
+/* Home scroll correction: keep decor pinned and give every later scene its own flow space. */
+body:has(.home-page){background:#fff}
+body:has(.home-page) .site-header,
+body:has(.home-page) .site-footer,
+body:has(.home-page) .site-nav{background:#fff}
+.home-page{position:relative;background:#fff}
+.art-viewport{position:relative;z-index:2;background:transparent}
+.art-stream{position:relative;z-index:1;background:transparent}
+.art-scene+.art-scene{margin-top:clamp(74px,8vw,124px)}
+@media(min-width:801px){.art-scene-first+.art-scene{margin-top:clamp(-220px,-14vw,-100px)}}
+@media(min-width:621px) and (max-width:800px){.art-scene-first+.art-scene{margin-top:clamp(-76px,-8vw,-46px)}}
+.home-graphics{position:fixed;z-index:1;inset:var(--header-height) 0 var(--footer-height);overflow:hidden;pointer-events:none}
+.home-graphic{position:absolute;display:block;opacity:.68}
+.home-graphic img{object-fit:contain}
+.home-graphic.graphic-a{width:clamp(90px,11vw,168px);aspect-ratio:285/510;top:5%;right:-2.5vw}
+.home-graphic.graphic-b{width:clamp(72px,8vw,122px);aspect-ratio:250/312;top:49%;left:-2vw}
+.home-graphic.graphic-c{width:clamp(150px,18vw,275px);aspect-ratio:470/255;top:68%;left:39%;opacity:.42}
+.home-graphic.graphic-d{width:clamp(78px,9vw,138px);aspect-ratio:285/510;top:33%;right:8vw;opacity:.54}
+@media(max-width:800px){
+  .home-graphic.graphic-a{width:clamp(72px,14vw,112px);right:-3vw}
+  .home-graphic.graphic-b{width:clamp(54px,9vw,76px);left:-3vw;top:58%}
+  .home-graphic.graphic-c{width:clamp(115px,23vw,180px);left:36%;top:73%;opacity:.34}
+  .home-graphic.graphic-d{width:clamp(58px,11vw,88px);right:7vw;top:42%;opacity:.4}
+}
+@media(max-width:620px){
+  .art-scene+.art-scene,.art-scene-first+.art-scene{margin-top:clamp(34px,10vw,68px)}
+  .home-graphic.graphic-a{width:21vw;right:-5vw;top:3%}
+  .home-graphic.graphic-b{width:15vw;left:-5vw;top:50%}
+  .home-graphic.graphic-c{width:30vw;left:55%;top:73%;opacity:.28}
+  .home-graphic.graphic-d{display:none}
+}
+
+/* The first scene keeps its approved overlap; subsequent scenes size to three artworks. */
+@media(min-width:621px){
+  .art-scene-flow+.art-scene-flow{margin-top:clamp(40px,4vw,72px)}
+  .art-scene-flow:not(.art-scene-flow-entry) .scene-item-2{--scene-top-offset:clamp(30px,5vw,92px)}
+  .art-scene-flow .scene-item-3{grid-row:2;grid-column:2 / span 6;margin-top:calc(clamp(40px,4vw,72px) - var(--third-pull,0px))}
+  .art-scene-flow.flow-third-right .scene-item-3{grid-column:7 / span 6}
+  .art-scene-flow[data-third-side="left"] .scene-item-3{grid-column:1 / span 6}
+  .art-scene-flow[data-third-side="right"] .scene-item-3{grid-column:7 / span 6}
+  .art-scene-flow .scene-item-3.orientation-portrait{width:min(max(var(--post-width),29vw),100%)}
+  .art-scene-flow .scene-item-3.orientation-square{width:min(max(var(--post-width),31vw),100%)}
+  .art-scene-flow:not(.art-scene-flow-entry).scene-landscape-landscape .scene-item-1,
+  .art-scene-flow:not(.art-scene-flow-entry).scene-landscape-landscape .scene-item-2{width:min(var(--post-width),calc(100% - 3vw))}
+  .art-scene-flow:not(.art-scene-flow-entry).scene-landscape-landscape .scene-item-2{justify-self:end}
+}
+@media(max-width:620px){
+  .art-scene-flow{gap:0}
+  .art-scene-flow+.art-scene-flow,.art-scene-first+.art-scene-flow{margin-top:0}
+  .art-scene-flow .scene-item:not(.hover-title-right){margin-top:clamp(34px,10vw,68px)}
+  .art-scene-flow .scene-item.hover-title-right{margin-top:clamp(190px,70vw,280px)}
+}

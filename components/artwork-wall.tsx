@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { HomePost } from "@/lib/portfolio";
 
 const palettes = ["#e63b2e", "#f2c230", "#1d4fa3", "#e94c95", "#f07a2b", "#111111"];
@@ -77,10 +77,41 @@ export function ArtworkWall({ homePosts }: { homePosts: HomePost[] }) {
   const edition = selected?.edition ?? selected?.artwork?.edition;
   const description = selected?.description ?? selected?.artwork?.description ?? selected?.project?.summary;
   const scenes = useMemo(() => {
-    const result: Array<{ posts: HomePost[]; index: number }> = [];
-    for (let index = 0; index < posts.length; index += 2) result.push({ posts: posts.slice(index, index + 2), index: Math.floor(index / 2) });
+    const result: Array<{ posts: HomePost[]; index: number; startIndex: number }> = [];
+    for (let startIndex = 0; startIndex < posts.length; startIndex += startIndex === 0 ? 2 : 3) {
+      result.push({ posts: posts.slice(startIndex, startIndex + (startIndex === 0 ? 2 : 3)), index: result.length, startIndex });
+    }
     return result;
   }, [posts]);
+
+  useLayoutEffect(() => {
+    const viewport = document.querySelector<HTMLElement>(".art-viewport");
+    const flowScenes = document.querySelectorAll<HTMLElement>(".art-scene-flow");
+    const update = () => {
+      flowScenes.forEach((scene) => {
+        const first = scene.querySelector<HTMLElement>(".scene-item-1");
+        const second = scene.querySelector<HTMLElement>(".scene-item-2");
+        const third = scene.querySelector<HTMLElement>(".scene-item-3");
+        if (!first || !second || !third) return;
+        const firstBottom = first.getBoundingClientRect().bottom;
+        const secondBottom = second.getBoundingClientRect().bottom;
+        const side = firstBottom <= secondBottom ? "left" : "right";
+        const pull = `${Math.round(Math.abs(firstBottom - secondBottom))}px`;
+        if (scene.dataset.thirdSide !== side) scene.dataset.thirdSide = side;
+        if (scene.style.getPropertyValue("--third-pull") !== pull) scene.style.setProperty("--third-pull", pull);
+      });
+    };
+    const observer = new ResizeObserver(update);
+    if (viewport) observer.observe(viewport);
+    flowScenes.forEach((scene) => {
+      const first = scene.querySelector<HTMLElement>(".scene-item-1");
+      const second = scene.querySelector<HTMLElement>(".scene-item-2");
+      if (first) observer.observe(first);
+      if (second) observer.observe(second);
+    });
+    update();
+    return () => observer.disconnect();
+  }, [scenes]);
 
   const close = useCallback(() => setActivePostId(null), []);
   const stepImage = useCallback((delta: number) => setImageIndex((current) => (current + delta + gallery.length) % gallery.length), [gallery.length]);
@@ -130,27 +161,29 @@ export function ArtworkWall({ homePosts }: { homePosts: HomePost[] }) {
     };
   }, [selected, close, gallery.length, stepImage]);
 
+  const renderPost = (post: HomePost, index: number, slotIndex: number) => {
+    const orientation = orientationFor(post);
+    const hoverColor = palettes[stableHash(post._id) % palettes.length];
+    const ratio = post.imageAspectRatio && post.imageAspectRatio > 0 ? post.imageAspectRatio : orientation === "portrait" ? 0.72 : orientation === "square" ? 1 : 1.36;
+    return <article key={`${post._id}-${index}`} className={`home-post scene-item scene-item-${slotIndex + 1} orientation-${orientation} size-hint-${post.sizeHint || "auto"} ${index % 2 ? "hover-title-right" : ""}`} style={{ "--post-width": sizeFor(post, orientation), "--hover-color": hoverColor, "--image-ratio": ratio } as React.CSSProperties}>
+      <button className="home-post-trigger" onClick={(event) => { openerRef.current = event.currentTarget; setImageIndex(0); setActivePostId(post._id); }} aria-label={`Ver ${post.altText || post.modalTitle || post.artwork?.title || post.project?.title || post.internalName}`}>
+        <span className="home-post-default"><PostImage post={post} alt={post.altText || post.internalName} priority={index === 0} /></span>
+        <span className="home-post-hover-state" aria-hidden="true"><span className="home-post-hover-image"><PostImage post={post} alt="" /></span><span className="home-post-hover-title">{post.modalTitle || post.artwork?.title || post.project?.title || post.internalName}</span></span>
+      </button>
+    </article>;
+  };
+
   return <>
+    <div className="home-graphics" aria-hidden="true">
+      {graphicPresets.slice(0, 4).map((graphic) => <span key={graphic} className={`home-graphic ${graphic}`}><Image src={`/graphics/home/${graphic}.svg`} alt="" fill sizes="20vw" /></span>)}
+    </div>
     <div className="art-viewport" aria-label="Obras em destaque">
       <section className="art-stream" aria-label="Publicações da Home">
-        {scenes.map(({ posts: scenePosts, index: sceneIndex }) => {
+        {scenes.map(({ posts: scenePosts, index: sceneIndex, startIndex }) => {
           const firstOrientation = orientationFor(scenePosts[0]);
           const secondOrientation = scenePosts[1] ? orientationFor(scenePosts[1]) : "single";
-          const graphicPreset = graphicPresets[sceneIndex % graphicPresets.length];
-          return <div key={`scene-${sceneIndex}-${scenePosts[0]._id}`} className={`art-scene scene-${firstOrientation}-${secondOrientation} ${graphicPreset}`}>
-            {graphicPreset !== "graphic-e" && <span className="scene-graphic" aria-hidden="true"><Image src={`/graphics/home/${graphicPreset}.svg`} alt="" fill sizes="34vw" /></span>}
-            {scenePosts.map((post, slotIndex) => {
-              const index = sceneIndex * 2 + slotIndex;
-              const orientation = orientationFor(post);
-              const hoverColor = palettes[stableHash(post._id) % palettes.length];
-              const ratio = post.imageAspectRatio && post.imageAspectRatio > 0 ? post.imageAspectRatio : orientation === "portrait" ? 0.72 : orientation === "square" ? 1 : 1.36;
-              return <article key={`${post._id}-${index}`} className={`home-post scene-item scene-item-${slotIndex + 1} orientation-${orientation} size-hint-${post.sizeHint || "auto"} ${index % 2 ? "hover-title-right" : ""}`} style={{ "--post-width": sizeFor(post, orientation), "--hover-color": hoverColor, "--image-ratio": ratio } as React.CSSProperties}>
-                <button className="home-post-trigger" onClick={(event) => { openerRef.current = event.currentTarget; setImageIndex(0); setActivePostId(post._id); }} aria-label={`Ver ${post.altText || post.modalTitle || post.artwork?.title || post.project?.title || post.internalName}`}>
-                  <span className="home-post-default"><PostImage post={post} alt={post.altText || post.internalName} priority={index === 0} /></span>
-                  <span className="home-post-hover-state" aria-hidden="true"><span className="home-post-hover-image"><PostImage post={post} alt="" /></span><span className="home-post-hover-title">{post.modalTitle || post.artwork?.title || post.project?.title || post.internalName}</span></span>
-                </button>
-              </article>;
-            })}
+          return <div key={`scene-${sceneIndex}-${scenePosts[0]._id}`} className={`art-scene scene-${firstOrientation}-${secondOrientation}${sceneIndex === 0 ? " art-scene-first" : ` art-scene-flow flow-third-${sceneIndex % 2 ? "left" : "right"}${sceneIndex === 1 ? " art-scene-flow-entry" : ""}`}`}>
+            {scenePosts.map((post, slotIndex) => renderPost(post, startIndex + slotIndex, slotIndex))}
           </div>;
         })}
         <div ref={sentinelRef} className="stream-sentinel" aria-hidden="true" />
