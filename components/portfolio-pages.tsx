@@ -93,6 +93,8 @@ export async function AboutContent({ locale }: { locale: Locale }) {
 }
 
 export async function ShopContent({ locale }: { locale: Locale }) {
+  const settings = await getSiteSettings(locale);
+  if (settings?.shopEnabled !== true) notFound();
   const items = await getShopItems(locale);
   const labels = copy[locale];
   return <div className="page-shell"><header className="page-heading"><p className="eyebrow">Jhow.ars</p><h1>Shop</h1></header>
@@ -114,7 +116,7 @@ export async function pageMetadata(locale: Locale, page: "projects" | "about" | 
   const ptPaths = { projects: "/projetos", about: "/sobre", shop: "/shop" };
   const enPaths = { projects: "/en/projects", about: "/en/about", shop: "/en/shop" };
   const title = page === "projects" ? projectsPage?.title || labels.projects : page === "about" ? labels.about : labels.shop;
-  return { title, description: settings?.seoDescription, alternates: canonical(ptPaths[page], enPaths[page], locale) };
+  return { title, description: settings?.seoDescription, alternates: canonical(ptPaths[page], enPaths[page], locale), ...(page === "shop" && settings?.shopEnabled !== true ? { robots: { index: false, follow: false } } : {}) };
 }
 
 export async function projectMetadata(params: Promise<{ slug: string }>, locale: Locale): Promise<Metadata> {

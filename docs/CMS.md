@@ -19,6 +19,31 @@ Em **HOME → Publicações da Home**:
 - Para uma cor fora da paleta, escolha `Custom` e informe hexadecimal no formato `#RRGGBB` no campo exibido.
 - Os campos textuais localizados aparecem divididos em **Português** e **English**. O front usa o idioma da rota e recua para Português se o idioma pedido estiver vazio.
 
+## CURADORIA DA HOME
+
+`Artwork` representa uma obra; `HomePost` representa uma fotografia específica usada no stream. Fotografias diferentes da mesma obra ficam em HomePosts separados, mas apontam para o mesmo Artwork. Para adicionar outra fotografia, cadastre um HomePost com seu próprio asset, alt text e orientação e relacione a obra existente.
+
+No HomePost, `orientation` informa portrait, landscape, square ou auto; `sizeHint` define presença relativa; `weight` controla frequência na seleção aleatória. `hoverBackgroundColor`/`hoverBackgroundCustom` e `hoverTextColor` guardam as cores escolhidas por publicação. `modalGallery` é a sequência de imagens daquele modal; cada HomePost do mesmo grupo pode abrir a galeria compartilhada. Use `Project relation` somente quando a publicação deve oferecer o CTA para um projeto. `enabled` inclui ou remove o HomePost do stream sem apagar o documento.
+
+O inventário canônico da primeira curadoria está em `data/home-curation-01.json`. O importador `sanity:home-curation-01` usa os arquivos originais PNG indicados no manifesto, faz upload sem redimensionar e relaciona cada publicação à sua obra quando especificado. Grupos de galeria compartilham a sequência indicada no manifesto. O modo padrão é somente leitura:
+
+```powershell
+npm run sanity:home-curation-01 -- --dry-run
+```
+
+Revise nomes, assets, relações e contagens antes de gravar. A carga de produção requer confirmação explícita:
+
+```powershell
+$env:HOME_CURATION_01_CONFIRM='YES'
+npm run sanity:home-curation-01 -- --commit --allow-production
+```
+
+O importador usa SHA-1 para reconhecer assets já armazenados no Sanity e SHA-256 para detectar arquivos locais idênticos. Uma reexecução atualiza os documentos identificados por slug/nome/hash do asset, reutiliza assets e não cria uma segunda cópia. A pasta de origem pode ser substituída por `JHOW_HOME_CURATION_DIR`.
+
+## SHOP VISIBILITY
+
+`shopEnabled` em **SITE → Configurações** é a fonte de verdade para visibilidade pública. Com `false`, Shop some do Header e do menu mobile, `/shop` e `/en/shop` retornam 404 e a metadata aplica `noindex`. Os ShopItems, schema, rota e integração permanecem cadastrados. Para reabrir, altere o campo para `true` no Sanity; não é preciso mudar código.
+
 ## Obras
 
 Em **OBRAS → Todas as obras**, edite título, descrição, técnica, edição e texto alternativo em Português e English. Ano, dimensões, status, imagens, slug e referências são dados compartilhados. Adicione, remova e reordene imagens no array; `Capa` seleciona a imagem de destaque. Relacione a obra ao projeto quando for confirmado.

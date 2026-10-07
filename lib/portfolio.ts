@@ -31,7 +31,7 @@ export type CmsProject = PortfolioProject & { summary?: string; client?: string;
 export type CmsShopItem = { _id: string; title: string; slug?: string; artwork?: CmsArtwork; productImages: Array<{ _key: string; image?: string; alt?: string; caption?: string }>; image?: string; description?: string; descriptionPt?: string; technique?: string; dimensions?: string; edition?: string; price?: number; currency?: string; availability: "available" | "sold-out" | "coming-soon"; ramonaUrl?: string; externalUrl?: string; featured?: boolean; order?: number };
 export type AboutPage = { creatorHeading?: string; circulationHeading?: string; intro?: string; bio?: string; portrait?: string; heroMedia?: { url: string; width?: number; height?: number }; heroMediaAlt?: string; circulation?: Array<{ name: string; organization?: string; city?: string; state?: string; years?: number[]; description?: string; link?: string }>; clients?: string[]; press?: string[]; additionalSections?: Array<{ heading?: string; body?: string }> };
 export type ProjectsPage = { eyebrow?: string; title?: string; optionalIntro?: string };
-export type SiteSettings = { artistName?: string; artistSubtitle?: string; locationLabel?: string; footerAvailability?: string; email?: string; instagram?: string; behance?: string; linkedin?: string; seoTitle?: string; seoDescription?: string; defaultOgImage?: string };
+export type SiteSettings = { artistName?: string; artistSubtitle?: string; locationLabel?: string; footerAvailability?: string; email?: string; shopEnabled?: boolean; instagram?: string; behance?: string; linkedin?: string; seoTitle?: string; seoDescription?: string; defaultOgImage?: string };
 
 const fallbackEnglishTitles: Record<string, string> = {
   "veja-saude-editorial-illustration": "VEJA SAÚDE — Editorial Illustration", "corpos-graficos": "Corpos Gráficos",
@@ -115,6 +115,6 @@ export async function getProjectsPage(locale: Locale = "pt"): Promise<ProjectsPa
 
 export async function getSiteSettings(locale: Locale = "pt"): Promise<SiteSettings | null> {
   if (!client) return localizeTree<SiteSettings>(fallbackSiteSettings as unknown as SiteSettings, locale);
-  try { const live = await client.fetch<SiteSettings | null>(`*[_type == "siteSettings" && _id == "site-settings"][0]{artistName,artistSubtitle,locationLabel,footerAvailability,email,instagram,behance,linkedin,seoTitle,seoDescription,"defaultOgImage":defaultOgImage.asset->url}`); return live ? localizeTree(live, locale) : null; }
+  try { const live = await client.fetch<SiteSettings | null>(`*[_type == "siteSettings" && _id == "site-settings"][0]{artistName,artistSubtitle,locationLabel,footerAvailability,email,shopEnabled,instagram,behance,linkedin,seoTitle,seoDescription,"defaultOgImage":defaultOgImage.asset->url}`); return live ? localizeTree(live, locale) : null; }
   catch { return localizeTree<SiteSettings>(fallbackSiteSettings as unknown as SiteSettings, locale); }
 }

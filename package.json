@@ -14,7 +14,9 @@
     "sanity:project-categories": "node scripts/migrate-project-categories.mjs",
     "sanity:project-image-audit": "node scripts/audit-project-image-quality.mjs",
     "sanity:i18n-migrate": "node scripts/migrate-i18n.mjs",
-    "sanity:i18n-verify": "node scripts/verify-i18n.mjs"
+    "sanity:i18n-verify": "node scripts/verify-i18n.mjs",
+    "sanity:home-curation-01": "node scripts/import-home-curation-01.mjs",
+    "sanity:home-curation-01:verify": "node scripts/verify-home-curation-01.mjs"
   },
   "dependencies": {
     "@sanity/client": "^7.11.1",

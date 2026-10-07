@@ -180,6 +180,7 @@ const projectsPage = defineType({ name: "projectsPage", title: "Página Projetos
 
 const siteSettings = defineType({ name: "siteSettings", title: "Configurações do site", type: "document", fields: [
   defineField({ name: "artistName", title: "Nome artístico", type: "string" }), defineField({ name: "artistSubtitle", title: "Subtítulo", type: "localizedString" }), defineField({ name: "locationLabel", title: "Localização", type: "localizedString" }), defineField({ name: "footerAvailability", title: "Disponibilidade no rodapé", type: "localizedString" }), defineField({ name: "email", title: "E-mail", type: "string" }),
+  defineField({ name: "shopEnabled", title: "Shop ativo no site público", type: "boolean", initialValue: false, description: "Desative para ocultar Shop da navegação e indisponibilizar /shop e /en/shop. Os documentos e produtos continuam no CMS." }),
   defineField({ name: "instagram", title: "Instagram", type: "url" }), defineField({ name: "behance", title: "Behance", type: "url" }), defineField({ name: "linkedin", title: "LinkedIn", type: "url" }),
   defineField({ name: "seoTitle", title: "Título SEO", type: "localizedString" }), defineField({ name: "seoDescription", title: "Descrição SEO", type: "localizedText" }), defineField({ name: "defaultOgImage", title: "Imagem Open Graph padrão", type: "image" }),
   defineField({ name: "migrationFingerprint", title: "Controle da migração", type: "string", readOnly: true, hidden: true }),

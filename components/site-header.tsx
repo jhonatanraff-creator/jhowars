@@ -40,7 +40,7 @@ export function SiteHeader({ settings, settingsByLocale }: { settings: SiteSetti
       <div className="primary-links">
         <Link href={`${prefix}/projetos`.replace("/en/projetos", "/en/projects")} aria-current={projectsActive ? "page" : undefined} onClick={() => setMenuOpen(false)}>{labels.projects}</Link>
         <Link href={activeLocale === "en" ? "/en/about" : "/sobre"} aria-current={aboutActive ? "page" : undefined} onClick={() => setMenuOpen(false)}>{labels.about}</Link>
-        <Link href={`${prefix}/shop`} aria-current={shopActive ? "page" : undefined} onClick={() => setMenuOpen(false)}>{labels.shop}</Link>
+        {activeSettings?.shopEnabled === true && <Link href={`${prefix}/shop`} aria-current={shopActive ? "page" : undefined} onClick={() => setMenuOpen(false)}>{labels.shop}</Link>}
         {activeSettings?.email && <a href={`mailto:${activeSettings.email}`} onClick={() => setMenuOpen(false)}>{labels.contact}</a>}
       </div>
       <div className="mobile-header-tools">{languageSwitch}<div className="social-links" aria-label="Redes e contato">{socials.map(({ key, label, href }) => href ? <a key={key} href={href} aria-label={label} title={label}><SocialIcon kind={key} /></a> : null)}</div></div>
