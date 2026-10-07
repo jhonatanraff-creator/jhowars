@@ -61,7 +61,12 @@ const projectSection = (title) => {
     if (/^#### /.test(line)) { language = undefined; continue; }
     if (language && line.startsWith("> ")) {
       const text = line.slice(2).trim();
-      if (text && !text.includes("Essa versão comunica cliente + edição + temas + problema editorial + sua solução visual sem virar textão.") && !text.includes("Esse texto funciona bem no ponto em que você sai das artes isoladas e começa a mostrar as páginas e duplas.")) paragraphs[language].push(text);
+      if (!text || text.includes("Essa versão comunica cliente + edição + temas + problema editorial + sua solução visual sem virar textão.") || text.includes("Esse texto funciona bem no ponto em que você sai das artes isoladas e começa a mostrar as páginas e duplas.")) continue;
+      const ptStart = text.indexOf(" Do chão para as copas das árvores.");
+      if (language === "en" && ptStart > 0) {
+        paragraphs.en.push(text.slice(0, ptStart).trim());
+        paragraphs.pt.push(text.slice(ptStart + 1).trim());
+      } else paragraphs[language].push(text);
     }
   }
   return { pt: paragraphs.pt.join("\n\n"), en: paragraphs.en.join("\n\n") };

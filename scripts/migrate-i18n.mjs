@@ -50,7 +50,12 @@ function sectionCopy(title) {
     else if (line.startsWith("#### ")) language = undefined;
     else if (language && line.startsWith("> ")) {
       const text = line.slice(2).trim();
-      if (text && !text.startsWith("Essa versão comunica cliente") && !text.startsWith("Esse texto funciona bem no ponto")) result[language].push(text);
+      if (!text || text.startsWith("Essa versão comunica cliente") || text.startsWith("Esse texto funciona bem no ponto")) continue;
+      const ptStart = text.indexOf(" Do chão para as copas das árvores.");
+      if (language === "en" && ptStart > 0) {
+        result.en.push(text.slice(0, ptStart).trim());
+        result.pt.push(text.slice(ptStart + 1).trim());
+      } else result[language].push(text);
     }
   }
   return { pt: result.pt.join("\n\n"), en: result.en.join("\n\n") };
@@ -99,9 +104,12 @@ const settingsPairs = {
 const isSet = (value) => typeof value === "string" && value.length > 0;
 function localized(current, pairs = {}) {
   const proposed = { pt: pairs.pt || "", en: pairs.en || "" };
+  const hasMixedBestasParagraph = (value) => typeof value === "string" && value.includes(" Do chão para as copas das árvores.");
   const target = typeof current === "string"
-    ? { pt: proposed.pt || current, en: proposed.en || (proposed.pt && current !== proposed.pt ? current : "") }
-    : { pt: current?.pt || proposed.pt, en: current?.en || proposed.en };
+    ? hasMixedBestasParagraph(current)
+      ? { pt: proposed.pt, en: proposed.en }
+      : { pt: proposed.pt || current, en: proposed.en || (proposed.pt && current !== proposed.pt ? current : "") }
+    : { pt: current?.pt || proposed.pt, en: hasMixedBestasParagraph(current?.en) ? proposed.en : current?.en || proposed.en };
   if (typeof current === "object" && current) {
     if (proposed.pt && proposed.en && target.pt === proposed.en && proposed.pt !== proposed.en) target.pt = proposed.pt;
     if (proposed.pt && proposed.en && target.en === proposed.pt && proposed.pt !== proposed.en) target.en = proposed.en;
@@ -138,7 +146,8 @@ function localizedMedia(value) {
   return value;
 }
 
-const docs = await client.fetch('*[_type in ["project", "artwork", "homePost", "aboutPage", "siteSettings", "shopItem"]]{...}');
+const docs = await client.fetch('*[_type in ["project", "artwork", "homePost", "aboutPage", "siteSettings", "shopItem"]]{...}')
+  .catch(() => { throw new Error("Falha na consulta ao Sanity; detalhes e credenciais foram omitidos."); });
 if (!docs.length) throw new Error("A consulta não encontrou documentos; a migração foi interrompida.");
 const projectDocs = docs.filter((doc) => doc._type === "project");
 const plans = [];
@@ -220,7 +229,8 @@ if (dryRun) { console.log("DRY-RUN: nenhuma gravação executada."); process.exi
 let updated = 0;
 for (const { doc, changes } of plans) {
   const { _rev, _id } = doc;
-  await client.patch(_id).ifRevisionId(_rev).set(changes).commit({ visibility: "sync" });
+  await client.patch(_id).ifRevisionId(_rev).set(changes).commit({ visibility: "sync" })
+    .catch(() => { throw new Error(`Falha ao atualizar ${_id}; detalhes e credenciais foram omitidos.`); });
   updated += 1;
 }
 console.log(`Migração concluída com ${updated} documentos atualizados. IDs e referências foram preservados; nenhum documento foi removido.`);
