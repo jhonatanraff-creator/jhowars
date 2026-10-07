@@ -123,4 +123,5 @@ body:has(.home-page)>main{min-height:0;overflow:hidden}
   .graphic-c .scene-graphic{width:34vw;top:65%;left:56%}
   .graphic-d .scene-graphic{width:22vw;top:4%;right:0}
 }
+@media(min-width:621px) and (max-width:800px){.art-scene+.art-scene{margin-top:clamp(-76px,-8vw,-46px)}}
 @media(prefers-reduced-motion:reduce){.art-viewport{scroll-behavior:auto}}
