@@ -1,5 +1,19 @@
 {
   "source": "five supplied ZIP HTML documents",
+  "duplicateAssetIds": {
+    "1083cc5a-3d32-4a71-ae35-f06195e29ea3": "13a5f1fa-4b99-4f3e-b95b-e836af08a03c",
+    "4392e400-8dbc-4d81-a6e4-22f3cbb17836": "24bbf477-0488-4271-85e9-42de988292fe",
+    "c2c7f585-67ee-4024-b828-db00e20e8f3d": "701f1073-6f60-4e5a-af05-83e3ae69a7bc",
+    "a5b7eade-6f41-4f9e-afe2-7b813b65778b": "c6b253fa-ac28-47cc-92d6-2aec9586ec56",
+    "478f1b2a-fb94-4d75-80ca-bf50066b8f61": "fc8dc6a1-6472-42da-b298-9c1304f25da8",
+    "98a97618-5bcc-4c4e-bd59-ff0e8867533a": "19e027cc-9d7f-45a5-bd4d-53c0e1968b33",
+    "d6c26958-ae89-4618-a539-6dc27cdf3632": "1e8f1681-2867-4b7e-90af-b6d2649fdb77",
+    "c07d0481-4a54-47c5-a725-e2bed746f014": "6fa2e8e0-372a-48f7-b6bd-5f48a6c340c9",
+    "52328039-0186-43e3-a6c9-0b7a3a0f82ca": "8daeffce-70be-4208-88ea-b356d8eba8c5",
+    "d85a4d61-b120-454f-8436-00727dc6c094": "5f25fb04-2ac3-48de-a1bb-2f2fdb4f3ba9",
+    "30bc3f60-6a62-4ad2-8d13-18cd4eddaf75": "08222567-9d3a-41c3-8314-79887a216a40",
+    "9e42d248-4acf-4614-9061-830d2ea4f00e": "60828f6c-1667-4370-88d8-11b911e9150c"
+  },
   "projects": [
     {
       "slug": "bestas-do-dia-brazilian-wildlife",

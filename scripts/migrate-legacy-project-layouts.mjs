@@ -12,6 +12,7 @@ if (existsSync(path.join(root, ".env.local"))) {
 }
 
 const manifest = JSON.parse(readFileSync(path.join(root, "data/legacy-project-layouts.json"), "utf8"));
+const projectSlugs = new Set(manifest.projects.map((page) => page.slug));
 const commit = process.argv.includes("--commit");
 const dryRun = !commit;
 const allowProduction = process.argv.includes("--allow-production");
@@ -22,7 +23,7 @@ const token = process.env.SANITY_API_TOKEN;
 const client = projectId && dataset && token ? createClient({ projectId, dataset, apiVersion: process.env.NEXT_PUBLIC_SANITY_API_VERSION || "2025-01-01", token, useCdn: false }) : null;
 const adobeEmbedUrl = "https://www-ccv.adobe.io/v1/player/ccv/PdFYgJJp4cy/embed?bgcolor=%23191919&lazyLoading=true&api_key=BehancePro2View";
 const aliasesByLegacyId = new Map([["a1f9bafc-ff53-40b5-9f4b-f38d469bd659", "second.jpg"]]);
-const summary = { mode: dryRun ? "dry-run" : "commit", dataset: dataset || "NÃO CONFIGURADO", projects: [], imageReferences: 0, collectionBlocks: 0, textBlocks: 0, videos: 0, unresolvedAssets: [], missingProjects: [], warnings: [] };
+const summary = { mode: dryRun ? "dry-run" : "commit", dataset: dataset || "NÃO CONFIGURADO", projects: [], imageReferences: 0, collectionBlocks: 0, textBlocks: 0, videos: 0, assetsDownloaded: 0, assetsToUpload: [], assetsReusedByHash: 0, duplicateIdsReused: 0, unresolvedAssets: [], missingProjects: [], warnings: [] };
 
 function fingerprint(value) { return createHash("sha256").update(JSON.stringify(value)).digest("hex"); }
 function deterministicKey(slug, index, suffix = "block") { return `${slug.slice(0, 10)}-${index}-${suffix}`.slice(0, 48); }
@@ -107,7 +108,7 @@ function modulesToPlan(page, document, byLegacyId, byFilename) {
     index: sourceModule.index, type: sourceModule.type, imageIds: sourceModule.images.map(imageSourceId), text: sourceModule.localized,
     media: sourceModule.media.map((item) => item.src), groupSizes: sourceModule.groupSizes,
   })) });
-  const related = (page.relatedSlugs || []).filter((slug) => slug !== page.slug && projectSlugs.includes(slug)).slice(0, 3);
+  const related = (page.relatedSlugs || []).filter((slug) => slug !== page.slug && projectSlugs.has(slug)).slice(0, 3);
   const relatedReferences = related.map((slug) => {
     const target = documentsBySlug.get(slug);
     return target ? { _key: deterministicKey(page.slug, related.indexOf(slug), "related"), _type: "reference", _ref: target._id } : null;
@@ -164,11 +165,68 @@ try {
     const hash = createHash("sha256").update(readFileSync(absolutePath)).digest("hex");
     if (byHash.has(hash)) byLegacyId.set(legacyId, byHash.get(hash));
   }
+  for (const [duplicateId, canonicalId] of Object.entries(manifest.duplicateAssetIds || {})) {
+    const canonicalAsset = byLegacyId.get(canonicalId);
+    if (canonicalAsset) {
+      byLegacyId.set(duplicateId, canonicalAsset);
+      summary.duplicateIdsReused += 1;
+    }
+  }
 
-  let missingDocument = false;
+  // Resolve absent media from the largest source URL recorded in the supplied HTML.
+  // Dry-run downloads only to verify the source and hash; commit uploads unique hashes once.
+  const sourcesById = new Map();
+  for (const page of manifest.projects) for (const sourceModule of page.modules) for (const image of sourceModule.images || []) {
+    const legacyId = imageSourceId(image);
+    const aliasedAsset = aliasesByLegacyId.get(legacyId);
+    if (legacyId && !byLegacyId.has(legacyId) && !(aliasedAsset && byFilename.has(aliasedAsset)) && !sourcesById.has(legacyId)) sourcesById.set(legacyId, image);
+  }
+  const pendingUploads = new Map();
+  for (const [legacyId, image] of sourcesById) {
+    try {
+      const sourceUrl = image.largestSrcset || image.url;
+      const parsedUrl = new URL(sourceUrl);
+      if (parsedUrl.hostname !== "cdn.myportfolio.com") throw new Error("host CDN não permitido");
+      const response = await fetch(sourceUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const contentType = response.headers.get("content-type")?.split(";")[0] || "";
+      if (!contentType.startsWith("image/")) throw new Error("resposta não é imagem");
+      const buffer = Buffer.from(await response.arrayBuffer());
+      const hash = createHash("sha256").update(buffer).digest("hex");
+      summary.assetsDownloaded += 1;
+      const existing = byHash.get(hash);
+      if (existing) {
+        byLegacyId.set(legacyId, existing);
+        summary.assetsReusedByHash += 1;
+        continue;
+      }
+      let pending = pendingUploads.get(hash);
+      if (!pending) {
+        pending = { hash, buffer, contentType, filename: path.basename(parsedUrl.pathname), ids: [] };
+        pendingUploads.set(hash, pending);
+      }
+      pending.ids.push(legacyId);
+      // A synthetic reference is only used to display a complete dry-run plan.
+      if (dryRun) byLegacyId.set(legacyId, { _id: `dry-run-${hash}` });
+    } catch (error) {
+      summary.unresolvedAssets.push({ legacyId, filename: path.basename(String(image.url || "").split(/[?#]/)[0]), reason: safeError(error) });
+    }
+  }
+  summary.assetsToUpload = [...pendingUploads.values()].map(({ hash, filename, ids, buffer }) => ({ hash: hash.slice(0, 12), filename, bytes: buffer.length, legacyIds: ids }));
+  summary.missingProjects = manifest.projects.map((page) => page.slug).filter((slug) => !documentsBySlug.has(slug));
+
+  if (commit && !summary.unresolvedAssets.length && !summary.missingProjects.length) {
+    for (const pending of pendingUploads.values()) {
+      const asset = await client.assets.upload("image", pending.buffer, { filename: pending.filename, contentType: pending.contentType });
+      byHash.set(pending.hash, asset);
+      for (const legacyId of pending.ids) byLegacyId.set(legacyId, asset);
+    }
+  }
+
+  const missingDocument = summary.missingProjects.length > 0;
   const plans = manifest.projects.map((page) => {
     const document = documentsBySlug.get(page.slug);
-    if (!document) { summary.missingProjects.push(page.slug); missingDocument = true; return null; }
+    if (!document) return null;
     // The cover asset was uploaded by the first migration with a local fallback name.
     return modulesToPlan(page, document, byLegacyId, byFilename);
   }).filter(Boolean);
@@ -180,7 +238,9 @@ try {
     return { slug: document.slug, legacyModules: manifest.projects.find((page) => page.slug === document.slug).moduleCount, cmsBlocks: plan.blocks.length, relatedProjects: plan.relatedSlugs, state };
   });
 
-  if (summary.unresolvedAssets.length) summary.warnings.push("Assets sem correspondência em sanity.imageAsset/fileAsset; a migração não enviará cópias e a gravação será bloqueada.");
+  if (summary.assetsToUpload.length) summary.warnings.push(`${summary.assetsToUpload.length} assets serão enviados uma única vez cada; hashes existentes são reutilizados.`);
+  if (summary.duplicateIdsReused) summary.warnings.push(`${summary.duplicateIdsReused} IDs legados duplicados apontam para os mesmos assets já migrados.`);
+  if (summary.unresolvedAssets.length) summary.warnings.push("Assets sem origem acessível ou correspondente por hash; nenhuma alteração será aplicada aos documentos.");
   if (summary.missingProjects.length) summary.warnings.push("Documentos de projeto ausentes; nenhuma criação ou exclusão será feita.");
   console.log(JSON.stringify(summary, null, 2));
 

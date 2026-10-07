@@ -25,11 +25,20 @@ Os totais distinguem módulos da fonte e imagens dentro de collections. Countena
 
 ## Estado real da carga
 
-**Pendente no Sanity.** O token previamente usado apareceu no diagnóstico de uma chamada de rede e o usuário pediu para mantê-lo. Por segurança, esta rodada não reutiliza essa credencial e ainda não rodou o dry-run remoto, não atualizou os cinco documentos nem validou referências/assets no Studio. Nenhuma gravação foi enviada.
+**Migrado no Sanity `production`.** O dry-run encontrou os cinco documentos esperados e 17 IDs de mídia sem asset correspondente. As URLs `largestSrcset` do CDN foram consultadas; 16 conteúdos binários únicos foram enviados em resolução máxima. Um ID duplicado já foi associado ao mesmo upload durante a carga. Na segunda verificação, mais 12 IDs distintos tinham bytes idênticos a assets já disponíveis; os vínculos foram registrados em `duplicateAssetIds` para impedir novos uploads.
 
-Depois da rotação da credencial, executar primeiro `npm run sanity:project-layouts -- --dry-run`; revisar o número de assets não resolvidos e os cinco documentos. Se houver qualquer asset ausente, interromper e resolver os vínculos antes de gravar. Somente então usar a confirmação explícita descrita em [`CMS.md`](./CMS.md).
+| Projeto | Blocos no CMS | Referências de imagem resolvidas | Relações “outros projetos” |
+|---|---:|---:|---:|
+| Bestas do Dia | 57 | 48 | 3 |
+| Bumba Meu Boi | 15 | 12 | 3 |
+| Countenance | 24 | 61 | 3 |
+| Fogo Fóssil | 77 | 65 | 3 |
+| O Que Fica | 19 | 15 | 3 |
+| **Total** | **192** | **201** | **15** |
+
+O bloco de vídeo de O Que Fica usa a URL externa de player preservada do HTML, pois não havia um arquivo de vídeo local reutilizável. As consultas diretas confirmaram `contentLayout: editorial-sequence`, contagem de blocos esperada, 201 referências de asset resolvidas e 15 referências de projetos resolvidas. Uma segunda execução do dry-run retornou `NO-OP (fingerprint igual)` para os cinco projetos, zero uploads pendentes, zero assets não resolvidos e 12 IDs duplicados reutilizados.
 
 ## Cobertura da validação
 
 - A validação local TypeScript/lint/build verifica código e schemas; ela não confirma documentos ou referências no Sanity.
-- A confirmação visual das cinco rotas em PT/EN e dos breakpoints requer o CMS atualizado. Até a carga segura ser executada, não se declara QA visual concluído.
+- A implementação e os dados já estão disponíveis para QA visual. O QA final das cinco rotas em PT/EN e dos breakpoints ainda não foi concluído; build e resposta HTTP isolada de uma rota não equivalem a aprovação visual.
