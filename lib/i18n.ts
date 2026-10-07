@@ -2,20 +2,20 @@ export type Locale = "pt" | "en";
 
 export const copy = {
   pt: {
-    projects: "Projetos", about: "Sobre", shop: "Shop", archive: "Arquivo", artwork: "Obra",
+    projects: "Projetos", about: "Sobre", shop: "Shop", contact: "Contato", archive: "Arquivo", artwork: "Obra",
     fullProject: "Ver projeto completo", soldOut: "Esgotado", comingSoon: "Em breve", buy: "Comprar na Ramona",
     availableFor: "Disponível para", previous: "Anterior", next: "Próximo", close: "Fechar",
     circulation: "Circulação", clients: "Clientes", press: "Imprensa", noProjects: "Nenhum projeto disponível.",
     shopComing: "Novas edições em breve.", basedIn: "Based in", footerAvailability: "Disponível para: colaborações, parcerias e projetos com identidade autoral",
-    home: "Jhow.ars — início", navigation: "Navegação principal", menuOpen: "Abrir menu", menuClose: "Fechar menu",
+    home: "Jhow.ars — início", navigation: "Navegação principal", menuOpen: "Abrir menu", menuClose: "Fechar menu", allProjects: "Ver todos os projetos", all: "Todos", noProjectsInCategory: "Nenhum projeto nesta categoria.",
   },
   en: {
-    projects: "Projects", about: "About", shop: "Shop", archive: "Archive", artwork: "Artwork",
+    projects: "Projects", about: "About", shop: "Shop", contact: "Contact", archive: "Archive", artwork: "Artwork",
     fullProject: "View full project", soldOut: "Sold out", comingSoon: "Coming soon", buy: "Buy at Ramona",
     availableFor: "Available for", previous: "Previous", next: "Next", close: "Close",
     circulation: "Circulation", clients: "Clients", press: "Press", noProjects: "No projects available.",
     shopComing: "New editions coming soon.", basedIn: "Based in", footerAvailability: "Available for: collaborations, partnerships and projects with a distinct identity",
-    home: "Jhow.ars — home", navigation: "Main navigation", menuOpen: "Open menu", menuClose: "Close menu",
+    home: "Jhow.ars — home", navigation: "Main navigation", menuOpen: "Open menu", menuClose: "Close menu", allProjects: "View all projects", all: "All", noProjectsInCategory: "No projects in this category.",
   },
 } as const;
 

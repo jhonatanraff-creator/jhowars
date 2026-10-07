@@ -11,6 +11,8 @@
     "cms:seed": "node --experimental-strip-types scripts/seed-sanity.mjs",
     "sanity:seed": "node --experimental-strip-types scripts/seed-sanity.mjs",
     "sanity:project-layouts": "node scripts/migrate-legacy-project-layouts.mjs",
+    "sanity:project-categories": "node scripts/migrate-project-categories.mjs",
+    "sanity:project-image-audit": "node scripts/audit-project-image-quality.mjs",
     "sanity:i18n-migrate": "node scripts/migrate-i18n.mjs",
     "sanity:i18n-verify": "node scripts/verify-i18n.mjs"
   },

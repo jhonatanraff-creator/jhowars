@@ -11,7 +11,8 @@ const deskStructure = (S: StructureBuilder) =>
     S.listItem().title("OBRAS").child(S.documentTypeList("artwork").title("Todas as obras")),
     S.listItem().title("PROJETOS").child(S.list().title("Projetos").items([
       singleton(S, "projectsPage", "projects-page", "Página Projetos"),
-      S.listItem().title("Todos os projetos").child(S.documentTypeList("project").title("Todos os projetos").defaultOrdering([{ field: "archiveOrder", direction: "asc" }])),
+      S.listItem().title("Todos os projetos").child(S.documentTypeList("project").title("Todos os projetos").defaultOrdering([{ field: "year", direction: "desc" }, { field: "archiveOrder", direction: "asc" }])),
+      S.listItem().title("Categorias").child(S.documentTypeList("projectCategory").title("Categorias de projetos").defaultOrdering([{ field: "sortOrder", direction: "asc" }])),
     ])),
     S.listItem().title("SHOP").child(S.list().title("Produtos").items([
       S.listItem().title("Todos os produtos").child(S.documentTypeList("shopItem").title("Todos os produtos")),

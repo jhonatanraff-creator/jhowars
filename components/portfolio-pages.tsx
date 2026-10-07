@@ -4,6 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArtworkWall } from "@/components/artwork-wall";
 import { ProjectContentBlocks } from "@/components/project-content-blocks";
+import { ProjectImageLightbox } from "@/components/project-image-lightbox";
+import { ProjectListing } from "@/components/project-listing";
 import { copy, localizedHref, type Locale } from "@/lib/i18n";
 import { getAboutPage, getHomePosts, getProjectBySlug, getProjects, getProjectsPage, getShopItems, getSiteSettings } from "@/lib/portfolio";
 
@@ -25,14 +27,7 @@ export async function ProjectsContent({ locale }: { locale: Locale }) {
       <h1>{page.title || (locale === "en" ? "PROJECTS" : "PROJETOS")}</h1>
       {page.optionalIntro && <p className="projects-page-intro">{page.optionalIntro}</p>}
     </header>
-    <section className="project-index-grid" aria-label={page.title || labels.projects}>
-      {projects.map((project, index) => <Link key={project._id} href={detailPath(locale, project.slug)} className="project-index-item">
-        {project.cover && <figure className="project-index-image"><Image src={project.cover} alt={project.title} width={1600} height={1200} sizes="(max-width: 767px) 92vw, 45vw" priority={index === 0} /></figure>}
-        <div className="project-index-caption"><h2>{project.title}</h2>
-          {(project.category || project.year) && <p>{[project.category, project.year].filter(Boolean).join(" · ")}</p>}
-        </div>
-      </Link>)}
-    </section>
+    <ProjectListing projects={projects} locale={locale} labels={{ all: labels.all, noProjectsInCategory: labels.noProjectsInCategory }} />
   </div>;
 }
 
@@ -52,19 +47,21 @@ export async function ProjectDetailContent({ params, locale }: { params: Promise
     {!editorialSequence && <>
       <Link className="back-link" href={localizedHref("/projetos", locale)}>← {labels.projects}</Link>
       <header className="detail-heading"><p className="eyebrow">{project.category ?? labels.projects}{project.year ? ` · ${project.year}` : ""}</p><h1>{project.title}</h1></header>
-      {project.cover && <figure className="detail-cover"><Image src={project.cover} alt={project.title} fill sizes="96vw" priority /></figure>}
     </>}
-    {blocks.length > 0 ? <ProjectContentBlocks blocks={blocks} /> : <>
-      {gallery.length > 0 && <section className="detail-gallery" aria-label={locale === "en" ? `More images from ${project.title}` : `Mais imagens de ${project.title}`}>
-        {gallery.map((artwork) => <figure key={artwork._id}><Image src={artwork.image} alt={artwork.alt || artwork.title} fill sizes="(max-width: 700px) 90vw, 44vw" /><figcaption>{artwork.title}</figcaption></figure>)}
-      </section>}
-      {description && <section className="detail-copy"><div>{description.split("\n\n").map((paragraph, index) => <p key={`${index}-${paragraph.slice(0, 20)}`}>{paragraph}</p>)}</div></section>}
-    </>}
+    <ProjectImageLightbox closeLabel={labels.close} zoomInLabel={locale === "en" ? "Zoom in" : "Aumentar zoom"} zoomOutLabel={locale === "en" ? "Zoom out" : "Diminuir zoom"} resetLabel={locale === "en" ? "Reset zoom" : "Restaurar zoom"} imageLabel={locale === "en" ? "Project image" : "Imagem do projeto"} previousLabel={labels.previous} nextLabel={labels.next}>
+      {!editorialSequence && project.cover && <figure className="detail-cover"><button className="detail-cover-trigger project-lightbox-trigger" type="button" aria-label={locale === "en" ? `Open image: ${project.title}` : `Abrir imagem: ${project.title}`} data-project-lightbox-image data-lightbox-src={project.cover} data-lightbox-alt={project.title} data-lightbox-caption=""><Image src={project.cover} alt={project.title} fill sizes="(max-width: 800px) 96vw, 92vw" quality={90} priority /></button></figure>}
+      {blocks.length > 0 ? <ProjectContentBlocks blocks={blocks} /> : <>
+        {gallery.length > 0 && <section className="detail-gallery" aria-label={locale === "en" ? `More images from ${project.title}` : `Mais imagens de ${project.title}`}>
+          {gallery.map((artwork) => <figure key={artwork._id}><button className="detail-gallery-trigger project-lightbox-trigger" type="button" aria-label={locale === "en" ? `Open image: ${artwork.title}` : `Abrir imagem: ${artwork.title}`} data-project-lightbox-image data-lightbox-src={artwork.image || ""} data-lightbox-alt={artwork.alt || artwork.title} data-lightbox-caption={artwork.title}><Image src={artwork.image || ""} alt={artwork.alt || artwork.title} fill sizes="(max-width: 800px) calc(100vw - 48px), (max-width: 1560px) 44vw, 750px" quality={90} /></button><figcaption>{artwork.title}</figcaption></figure>)}
+        </section>}
+        {description && <section className="detail-copy"><div>{description.split("\n\n").map((paragraph, index) => <p key={`${index}-${paragraph.slice(0, 20)}`}>{paragraph}</p>)}</div></section>}
+      </>}
+    </ProjectImageLightbox>
     {relatedProjects.length > 0 && <section className="related-projects" aria-labelledby="related-projects-title">
-      <h2 id="related-projects-title">{locale === "en" ? "YOU MAY ALSO LIKE" : "OUTROS PROJETOS"}</h2>
+      <div className="related-projects-heading"><h2 id="related-projects-title">{locale === "en" ? "YOU MAY ALSO LIKE" : "OUTROS PROJETOS"}</h2><Link href={projectPaths[locale]}>{labels.allProjects} →</Link></div>
       <div className="related-projects-grid">
         {relatedProjects.map((item) => <Link className="related-project" key={item._id} href={detailPath(locale, item.slug)}>
-          {item.cover && <figure className="related-project-image" style={item.coverAspectRatio ? { aspectRatio: String(item.coverAspectRatio) } : undefined}><Image src={item.cover} alt="" fill sizes="(max-width: 700px) 92vw, 30vw" /></figure>}
+          {item.cover && <figure className="related-project-image" style={item.coverAspectRatio ? { aspectRatio: String(item.coverAspectRatio) } : undefined}><Image src={item.cover} alt="" fill sizes="(max-width: 620px) calc(100vw - 48px), (max-width: 1024px) 46vw, (max-width: 1566px) 30vw, 470px" quality={90} /></figure>}
           <h3>{item.title}</h3>
           {(item.category || item.year) && <p>{[item.category, item.year].filter(Boolean).join(" · ")}</p>}
         </Link>)}

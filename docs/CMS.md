@@ -29,7 +29,32 @@ Em **PROJETOS → Página Projetos**, edite a identificação acima do título e
 
 Em **PROJETOS → Todos os projetos**, mantenha o slug técnico, ano, capa e relações. Título, categoria, resumo, cliente, créditos e texto dos blocos possuem idiomas separados. Os blocos de conteúdo podem ser editados e reordenados no array. Imagens e arquivos de mídia permanecem compartilhados entre idiomas; alt e legendas são localizados.
 
-Na lista de projetos, `Capa` controla a imagem do índice. `Ordem no arquivo` usa números: valores menores aparecem primeiro; para reordenar, ajuste os números. `Mostrar no índice de Projetos` oculta o item do índice sem apagar o documento nem sua página interna. Título e categoria devem ser preenchidos no idioma correspondente.
+Na lista de projetos, `Capa` controla a imagem do índice. O índice usa primeiro o `Ano` mais recente e, em caso de empate, `Ordem no arquivo` crescente. `Mostrar no índice de Projetos` oculta o item do índice sem apagar o documento nem sua página interna. `Categoria antiga (migração)` permanece no documento como histórico; use `Categorias` para alimentar os filtros.
+
+### Categorias
+
+- Em **PROJETOS → Categorias**, crie uma categoria com nomes PT e EN, slug estável, ordem e estado ativo.
+- Em **PROJETOS → Todos os projetos**, associe uma ou mais categorias pelo campo `Categorias`. Categorias sem projeto visível não aparecem no site.
+- Para mudar os rótulos, edite Português e English no mesmo documento. O projeto mantém uma única referência para os dois idiomas.
+- `Ordem nos filtros` controla a ordem da lista de filtros. Desativar uma categoria oculta o filtro sem apagar a categoria ou os projetos.
+- A migração inicial usa os valores existentes em `Categoria antiga (migração)`. O script preserva esse campo, é idempotente e roda em dry-run por padrão:
+
+```powershell
+npm run sanity:project-categories -- --dry-run
+```
+
+Depois de revisar as categorias e os projetos que receberão referências, a gravação exige confirmação explícita:
+
+```powershell
+$env:PROJECT_CATEGORIES_CONFIRM='YES'
+npm run sanity:project-categories -- --commit --allow-production
+```
+
+### Imagens e recomendações
+
+- Em cada bloco de imagem, edite o asset, o texto alternativo e a legenda no CMS. A ordem e as opções do bloco permanecem no próprio array `Conteúdo do projeto`.
+- O site usa `next/image` com tamanhos responsivos por largura/colunas e qualidade 90. A janela ampliada usa a URL original do asset Sanity para preservar a resolução disponível.
+- Use **Outros projetos (até 3)** para editar os relacionados. Eles aparecem na sequência de referências do CMS. O link **Ver todos os projetos →** leva ao arquivo no idioma atual.
 
 ### Páginas individuais e sequência editorial
 
@@ -71,7 +96,7 @@ Os eventos em **Circulação** aparecem na mesma ordem do array do CMS. Adicione
 
 ## Site
 
-Em **SITE · Configurações**, e-mail e redes são globais. Subtítulo, localização, mensagem de disponibilidade e SEO têm versões PT/EN. A imagem Open Graph padrão é compartilhada.
+Em **SITE · Configurações**, e-mail e redes são globais. O e-mail é usado nos links `mailto:` do Header e do Footer. Subtítulo, localização, mensagem de disponibilidade e SEO têm versões PT/EN. A imagem Open Graph padrão é compartilhada.
 
 ## Migração e verificação
 

@@ -75,13 +75,25 @@ const circulationItem = defineType({ name: "circulationItem", title: "Item de ci
   defineField({ name: "name", title: "Nome", type: "string", validation: (r) => r.required() }), defineField({ name: "organization", title: "Organização", type: "string" }), defineField({ name: "city", title: "Cidade", type: "string" }), defineField({ name: "state", title: "Estado", type: "string" }), defineField({ name: "years", title: "Anos confirmados", type: "array", of: [{ type: "number" }] }), defineField({ name: "description", title: "Descrição", type: "localizedText" }), defineField({ name: "link", title: "Link", type: "url" }),
 ], preview: { select: { title: "name", subtitle: "city" } } });
 
+const projectCategory = defineType({ name: "projectCategory", title: "Categoria de projeto", type: "document",
+  orderings: [{ title: "Ordem do filtro", name: "sortOrderAsc", by: [{ field: "sortOrder", direction: "asc" }] }, { title: "Nome (PT)", name: "titlePtAsc", by: [{ field: "title.pt", direction: "asc" }] }],
+  fields: [
+    defineField({ name: "title", title: "Nome da categoria", type: "localizedString", validation: (r) => r.required() }),
+    defineField({ name: "slug", title: "Identificador da URL", type: "slug", options: { source: "title.pt" }, validation: (r) => r.required() }),
+    defineField({ name: "sortOrder", title: "Ordem nos filtros", type: "number", description: "Número menor aparece primeiro. Só categorias usadas por projetos visíveis aparecem no site." }),
+    defineField({ name: "enabled", title: "Ativa", type: "boolean", initialValue: true, description: "Desative para ocultar a categoria dos filtros sem apagar seus projetos." }),
+  ],
+  preview: { select: { title: "title.pt", subtitle: "title.en" }, prepare: ({ title, subtitle }) => ({ title: title || "Categoria sem nome", subtitle }) },
+});
+
 const project = defineType({
   name: "project", title: "Projeto", type: "document",
-  orderings: [{ title: "Ordem do arquivo", name: "archiveOrder", by: [{ field: "archiveOrder", direction: "asc" }] }, { title: "Ano (mais recente)", name: "yearDesc", by: [{ field: "year", direction: "desc" }] }, { title: "Título", name: "titleAsc", by: [{ field: "title.pt", direction: "asc" }] }],
+  orderings: [{ title: "Ano (mais recente)", name: "yearDesc", by: [{ field: "year", direction: "desc" }, { field: "archiveOrder", direction: "asc" }] }, { title: "Ordem do arquivo", name: "archiveOrder", by: [{ field: "archiveOrder", direction: "asc" }] }, { title: "Título", name: "titleAsc", by: [{ field: "title.pt", direction: "asc" }] }],
   fields: [
     defineField({ name: "title", title: "Título", type: "localizedString", validation: (r) => r.required() }),
     defineField({ name: "slug", title: "Slug", type: "slug", options: { source: "title" }, validation: (r) => r.required() }),
-    defineField({ name: "year", title: "Ano", type: "number" }), defineField({ name: "category", title: "Categoria", type: "localizedString" }),
+    defineField({ name: "year", title: "Ano", type: "number" }), defineField({ name: "category", title: "Categoria antiga (migração)", type: "localizedString", description: "Campo legado preservado durante a migração. Use Categorias para classificar o projeto." }),
+    defineField({ name: "categories", title: "Categorias", type: "array", description: "Uma ou mais categorias administráveis que aparecem nos filtros da página Projetos.", of: [{ type: "reference", to: [{ type: "projectCategory" }] }], validation: (r) => r.unique() }),
     defineField({ name: "archiveOrder", title: "Ordem no arquivo", type: "number", description: "Número menor aparece antes no índice de Projetos. Em branco, o projeto fica após os itens ordenados." }),
     defineField({ name: "showInProjects", title: "Mostrar no índice de Projetos", type: "boolean", initialValue: true, description: "Desative para ocultar do índice sem apagar o projeto ou sua página interna." }),
     defineField({ name: "contentLayout", title: "Apresentação do conteúdo", type: "string", description: "Use sequência editorial para páginas cujos contentBlocks reproduzem a ordem modular do material legado. Padrão mantém o cabeçalho e a capa do layout atual.", options: { list: [{ title: "Padrão do site", value: "standard" }, { title: "Sequência editorial", value: "editorial-sequence" }] }, initialValue: "standard" }),
@@ -173,4 +185,4 @@ const siteSettings = defineType({ name: "siteSettings", title: "Configurações 
   defineField({ name: "migrationFingerprint", title: "Controle da migração", type: "string", readOnly: true, hidden: true }),
 ] });
 
-export const schemaTypes = [localizedString, localizedText, imageEntry, textBlock, imageBlock, galleryBlock, twoImagesBlock, fullWidthImageBlock, mediaBlock, captionBlock, spacerBlock, circulationItem, homePost, artwork, project, shopItem, projectsPage, aboutPage, siteSettings];
+export const schemaTypes = [localizedString, localizedText, imageEntry, textBlock, imageBlock, galleryBlock, twoImagesBlock, fullWidthImageBlock, mediaBlock, captionBlock, spacerBlock, circulationItem, homePost, artwork, projectCategory, project, shopItem, projectsPage, aboutPage, siteSettings];
