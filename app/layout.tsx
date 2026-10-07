@@ -19,5 +19,5 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const settings = await getSiteSettings();
-  return <html lang="pt-BR"><body><SiteHeader settings={settings} /><main>{children}</main><Footer /></body></html>;
+  return <html lang="pt-BR"><body><SiteHeader settings={settings} /><main>{children}</main><Footer settings={settings} /></body></html>;
 }

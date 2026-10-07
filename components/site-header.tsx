@@ -26,7 +26,7 @@ export function SiteHeader({ settings }: { settings: SiteSettings | null }) {
     <Link className="brand" href="/" aria-label={`${settings?.artistName || "Jhow.ars"} — início`} onMouseEnter={() => setLogoHovered(true)} onMouseLeave={() => setLogoHovered(false)} onFocus={() => setLogoHovered(true)} onBlur={() => setLogoHovered(false)}>
       <Image src={logoHovered ? "/legacy/brand/wordmark-hover.png" : "/legacy/brand/wordmark.gif"} alt={settings?.artistName || "Jhow.ars"} width={1425} height={563} unoptimized priority />
     </Link>
-    <button className="menu-toggle" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"} aria-expanded={menuOpen} aria-controls="site-navigation" onClick={() => setMenuOpen((open) => !open)}>{menuOpen ? "Fechar" : "Menu"}</button>
+    <button className={`menu-toggle${menuOpen ? " is-open" : ""}`} aria-label={menuOpen ? "Fechar menu" : "Abrir menu"} aria-expanded={menuOpen} aria-controls="site-navigation" onClick={() => setMenuOpen((open) => !open)}><span /><span /><span /></button>
     <nav id="site-navigation" className={menuOpen ? "site-nav is-open" : "site-nav"} aria-label="Navegação principal">
       <div className="primary-links"><Link href="/projetos" onClick={() => setMenuOpen(false)}>Projetos</Link><Link href="/sobre" onClick={() => setMenuOpen(false)}>Sobre</Link><Link href="/shop" onClick={() => setMenuOpen(false)}>Shop</Link></div>
       <div className="social-links" aria-label="Redes e contato">{socials.map(({ key, label, href }) => href ? <a key={key} href={href} aria-label={label} title={label}>{<SocialIcon kind={key} />}</a> : null)}</div>

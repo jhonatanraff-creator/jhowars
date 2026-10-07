@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { HomePost } from "@/lib/portfolio";
 
 const palettes = ["#e63b2e", "#f2c230", "#1d4fa3", "#e94c95", "#f07a2b", "#111111"];
-const alignments = ["left", "right", "left", "center", "right", "left", "center", "right"];
+const graphicPresets = ["graphic-a", "graphic-b", "graphic-c", "graphic-d", "graphic-e"];
 
 function stableHash(value: string) {
   let hash = 0;
@@ -15,18 +15,34 @@ function stableHash(value: string) {
 }
 
 function batchOrder(posts: HomePost[], round: number) {
-  const ordered = [...posts].sort((a, b) => stableHash(`${round}:${a._id}`) - stableHash(`${round}:${b._id}`));
+  const ordered = [...posts].sort((a, b) => {
+    const score = (post: HomePost) => {
+      const random = (stableHash(`${round}:${post._id}`) + 1) / 2147483648;
+      const weight = typeof post.weight === "number" && post.weight > 0 ? post.weight : 1;
+      return -Math.log(random) / weight;
+    };
+    return score(a) - score(b);
+  });
   return ordered;
 }
 
-function sizeFor(post: HomePost) {
-  switch (post.sizeHint) {
-    case "hero": return "88vw";
-    case "large": return "66vw";
-    case "medium": return "50vw";
-    case "small": return "32vw";
-    default: return post.orientation === "landscape" ? "66vw" : "50vw";
-  }
+function orientationFor(post: HomePost): "landscape" | "portrait" | "square" {
+  if (post.orientation === "landscape" || post.orientation === "portrait" || post.orientation === "square") return post.orientation;
+  const ratio = post.imageAspectRatio;
+  if (ratio && ratio > 1.15) return "landscape";
+  if (ratio && ratio < 0.85) return "portrait";
+  return "square";
+}
+
+function sizeFor(post: HomePost, orientation: "landscape" | "portrait" | "square") {
+  const widths = {
+    landscape: { small: [38, 700], medium: [41, 760], large: [44, 820], hero: [46, 860], auto: [43, 800] },
+    portrait: { small: [27, 520], medium: [30, 570], large: [32, 610], hero: [34, 650], auto: [30, 600] },
+    square: { small: [30, 560], medium: [33, 620], large: [36, 680], hero: [38, 720], auto: [34, 660] },
+  } as const;
+  const hint = post.sizeHint in widths[orientation] ? post.sizeHint as keyof typeof widths[typeof orientation] : "auto";
+  const [vw, max] = widths[orientation][hint];
+  return `clamp(240px, ${vw}vw, ${max}px)`;
 }
 
 function PostImage({ post, alt, priority = false }: { post: HomePost; alt: string; priority?: boolean }) {
@@ -60,6 +76,11 @@ export function ArtworkWall({ homePosts }: { homePosts: HomePost[] }) {
   const dimensions = selected?.dimensions ?? selected?.artwork?.dimensions;
   const edition = selected?.edition ?? selected?.artwork?.edition;
   const description = selected?.description ?? selected?.artwork?.description ?? selected?.project?.summary;
+  const scenes = useMemo(() => {
+    const result: Array<{ posts: HomePost[]; index: number }> = [];
+    for (let index = 0; index < posts.length; index += 2) result.push({ posts: posts.slice(index, index + 2), index: Math.floor(index / 2) });
+    return result;
+  }, [posts]);
 
   const close = useCallback(() => setActivePostId(null), []);
   const stepImage = useCallback((delta: number) => setImageIndex((current) => (current + delta + gallery.length) % gallery.length), [gallery.length]);
@@ -112,16 +133,25 @@ export function ArtworkWall({ homePosts }: { homePosts: HomePost[] }) {
   return <>
     <div className="art-viewport" aria-label="Obras em destaque">
       <section className="art-stream" aria-label="Publicações da Home">
-        {posts.map((post, index) => {
-          const alignment = alignments[index % alignments.length];
-          const hoverColor = palettes[stableHash(post._id) % palettes.length];
-          const ratio = post.imageAspectRatio && post.imageAspectRatio > 0 ? post.imageAspectRatio : post.orientation === "portrait" ? 0.72 : post.orientation === "square" ? 1 : 1.36;
-          return <article key={`${post._id}-${index}`} className={`home-post align-${alignment} orientation-${post.orientation}`} style={{ "--post-width": sizeFor(post), "--hover-color": hoverColor, "--image-ratio": ratio } as React.CSSProperties}>
-            <button className="home-post-trigger" onClick={(event) => { openerRef.current = event.currentTarget; setImageIndex(0); setActivePostId(post._id); }} aria-label={`Ver ${post.altText || post.modalTitle || post.artwork?.title || post.project?.title || post.internalName}`}>
-              <span className="home-post-default"><PostImage post={post} alt={post.altText || post.internalName} priority={index === 0} /></span>
-              <span className="home-post-hover-state" aria-hidden="true"><span className="home-post-hover-image"><PostImage post={post} alt="" /></span><span className="home-post-hover-title">{post.modalTitle || post.artwork?.title || post.project?.title || post.internalName}</span></span>
-            </button>
-          </article>;
+        {scenes.map(({ posts: scenePosts, index: sceneIndex }) => {
+          const firstOrientation = orientationFor(scenePosts[0]);
+          const secondOrientation = scenePosts[1] ? orientationFor(scenePosts[1]) : "single";
+          const graphicPreset = graphicPresets[sceneIndex % graphicPresets.length];
+          return <div key={`scene-${sceneIndex}-${scenePosts[0]._id}`} className={`art-scene scene-${firstOrientation}-${secondOrientation} ${graphicPreset}`}>
+            {graphicPreset !== "graphic-e" && <span className="scene-graphic" aria-hidden="true"><Image src={`/graphics/home/${graphicPreset}.svg`} alt="" fill sizes="34vw" /></span>}
+            {scenePosts.map((post, slotIndex) => {
+              const index = sceneIndex * 2 + slotIndex;
+              const orientation = orientationFor(post);
+              const hoverColor = palettes[stableHash(post._id) % palettes.length];
+              const ratio = post.imageAspectRatio && post.imageAspectRatio > 0 ? post.imageAspectRatio : orientation === "portrait" ? 0.72 : orientation === "square" ? 1 : 1.36;
+              return <article key={`${post._id}-${index}`} className={`home-post scene-item scene-item-${slotIndex + 1} orientation-${orientation} size-hint-${post.sizeHint || "auto"} ${index % 2 ? "hover-title-right" : ""}`} style={{ "--post-width": sizeFor(post, orientation), "--hover-color": hoverColor, "--image-ratio": ratio } as React.CSSProperties}>
+                <button className="home-post-trigger" onClick={(event) => { openerRef.current = event.currentTarget; setImageIndex(0); setActivePostId(post._id); }} aria-label={`Ver ${post.altText || post.modalTitle || post.artwork?.title || post.project?.title || post.internalName}`}>
+                  <span className="home-post-default"><PostImage post={post} alt={post.altText || post.internalName} priority={index === 0} /></span>
+                  <span className="home-post-hover-state" aria-hidden="true"><span className="home-post-hover-image"><PostImage post={post} alt="" /></span><span className="home-post-hover-title">{post.modalTitle || post.artwork?.title || post.project?.title || post.internalName}</span></span>
+                </button>
+              </article>;
+            })}
+          </div>;
         })}
         <div ref={sentinelRef} className="stream-sentinel" aria-hidden="true" />
         {posts.length === 0 && <p className="home-empty">Nenhuma publicação ativa na Home.</p>}
