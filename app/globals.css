@@ -137,25 +137,8 @@ body:has(.home-page) .site-nav{background:#fff}
 .art-scene+.art-scene{margin-top:clamp(74px,8vw,124px)}
 @media(min-width:801px){.art-scene-first+.art-scene{margin-top:clamp(-220px,-14vw,-100px)}}
 @media(min-width:621px) and (max-width:800px){.art-scene-first+.art-scene{margin-top:clamp(-76px,-8vw,-46px)}}
-.home-graphics{position:fixed;z-index:1;inset:var(--header-height) 0 var(--footer-height);overflow:hidden;pointer-events:none}
-.home-graphic{position:absolute;display:block;opacity:.68}
-.home-graphic img{object-fit:contain}
-.home-graphic.graphic-a{width:clamp(90px,11vw,168px);aspect-ratio:285/510;top:5%;right:-2.5vw}
-.home-graphic.graphic-b{width:clamp(72px,8vw,122px);aspect-ratio:250/312;top:49%;left:-2vw}
-.home-graphic.graphic-c{width:clamp(150px,18vw,275px);aspect-ratio:470/255;top:68%;left:39%;opacity:.42}
-.home-graphic.graphic-d{width:clamp(78px,9vw,138px);aspect-ratio:285/510;top:33%;right:8vw;opacity:.54}
-@media(max-width:800px){
-  .home-graphic.graphic-a{width:clamp(72px,14vw,112px);right:-3vw}
-  .home-graphic.graphic-b{width:clamp(54px,9vw,76px);left:-3vw;top:58%}
-  .home-graphic.graphic-c{width:clamp(115px,23vw,180px);left:36%;top:73%;opacity:.34}
-  .home-graphic.graphic-d{width:clamp(58px,11vw,88px);right:7vw;top:42%;opacity:.4}
-}
 @media(max-width:620px){
   .art-scene+.art-scene,.art-scene-first+.art-scene{margin-top:clamp(34px,10vw,68px)}
-  .home-graphic.graphic-a{width:21vw;right:-5vw;top:3%}
-  .home-graphic.graphic-b{width:15vw;left:-5vw;top:50%}
-  .home-graphic.graphic-c{width:30vw;left:55%;top:73%;opacity:.28}
-  .home-graphic.graphic-d{display:none}
 }
 
 /* The first scene keeps its approved overlap; subsequent scenes size to three artworks. */
@@ -177,4 +160,39 @@ body:has(.home-page) .site-nav{background:#fff}
   .art-scene-flow+.art-scene-flow,.art-scene-first+.art-scene-flow{margin-top:0}
   .art-scene-flow .scene-item:not(.hover-title-right){margin-top:clamp(34px,10vw,68px)}
   .art-scene-flow .scene-item.hover-title-right{margin-top:clamp(190px,70vw,280px)}
+}
+
+/* Identity assets: the original paths are inline only to animate the yellow star. */
+html,body,.site-header,.site-footer{background:#fff}
+.site-nav{background:#fff}
+.brand{width:auto;height:50px;aspect-ratio:696 / 772;overflow:visible}
+.jhow-isotype{display:block;width:auto;height:100%;aspect-ratio:696 / 772}
+.jhow-isotype__star{transform-box:fill-box;transform-origin:center;animation:jhow-star-spin 18s linear infinite running;will-change:transform}
+@keyframes jhow-star-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@media(hover:hover) and (pointer:fine) and (min-width:801px){
+  .jhow-isotype-link:hover .jhow-isotype__star,
+  .jhow-isotype-link:focus-visible .jhow-isotype__star{animation-play-state:paused}
+}
+@media(prefers-reduced-motion:reduce){.jhow-isotype__star{animation:none}}
+
+/* Fixed background art stays outside the artwork scroller and preserves each SVG viewBox. */
+.home-background-art{position:fixed;z-index:1;inset:var(--header-height) 0 var(--footer-height);overflow:hidden;pointer-events:none}
+.home-background-art img{position:absolute;display:block;height:auto;max-width:none;object-fit:contain;pointer-events:none;opacity:.48}
+.art-stream{z-index:10}
+.home-bg-frame20{top:clamp(42px,7vh,100px);right:clamp(-70px,-4vw,-28px);width:clamp(230px,23vw,340px)}
+.home-background-art .home-bg-frame21{right:clamp(-55px,-3vw,-20px);bottom:clamp(60px,10vh,150px);width:clamp(150px,15vw,230px);opacity:.32}
+.home-background-art .home-bg-vector-red{left:clamp(-65px,-4vw,-28px);top:54%;width:clamp(160px,15vw,240px);transform:translateY(-50%);opacity:.58}
+.home-background-art .home-bg-vector-outline{left:clamp(36%,43vw,48%);bottom:clamp(30px,8vh,110px);width:clamp(180px,18vw,280px);opacity:.4}
+@media(max-width:800px){
+  .brand{height:42px}
+  .home-bg-frame20{top:clamp(30px,6vh,65px);right:-3vw;width:clamp(175px,19vw,285px)}
+  .home-background-art .home-bg-frame21{right:-2vw;bottom:9vh;width:clamp(110px,14vw,210px)}
+  .home-background-art .home-bg-vector-red{left:-3vw;width:clamp(120px,14vw,215px)}
+  .home-background-art .home-bg-vector-outline{left:40%;bottom:7vh;width:clamp(140px,17vw,250px)}
+}
+@media(max-width:620px){
+  .brand{height:40px}
+  .home-bg-frame20{top:18px;right:-5vw;width:clamp(105px,36vw,145px)}
+  .home-background-art .home-bg-frame21,.home-background-art .home-bg-vector-outline{display:none}
+  .home-background-art .home-bg-vector-red{top:57%;left:-6vw;width:clamp(85px,26vw,120px);opacity:.4}
 }

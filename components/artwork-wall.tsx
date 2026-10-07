@@ -6,7 +6,6 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { HomePost } from "@/lib/portfolio";
 
 const palettes = ["#e63b2e", "#f2c230", "#1d4fa3", "#e94c95", "#f07a2b", "#111111"];
-const graphicPresets = ["graphic-a", "graphic-b", "graphic-c", "graphic-d", "graphic-e"];
 
 function stableHash(value: string) {
   let hash = 0;
@@ -174,8 +173,11 @@ export function ArtworkWall({ homePosts }: { homePosts: HomePost[] }) {
   };
 
   return <>
-    <div className="home-graphics" aria-hidden="true">
-      {graphicPresets.slice(0, 4).map((graphic) => <span key={graphic} className={`home-graphic ${graphic}`}><Image src={`/graphics/home/${graphic}.svg`} alt="" fill sizes="20vw" /></span>)}
+    <div className="home-background-art" aria-hidden="true">
+      <Image className="home-bg-frame20" src="/graphics/home/frame-20.svg" alt="" width={470} height={510} unoptimized />
+      <Image className="home-bg-frame21" src="/graphics/home/frame-21.svg" alt="" width={470} height={510} unoptimized />
+      <Image className="home-bg-vector-red" src="/graphics/home/vector-red.svg" alt="" width={330} height={439} unoptimized />
+      <Image className="home-bg-vector-outline" src="/graphics/home/vector-outline.svg" alt="" width={470} height={510} unoptimized />
     </div>
     <div className="art-viewport" aria-label="Obras em destaque">
       <section className="art-stream" aria-label="Publicações da Home">

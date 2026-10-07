@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useState } from "react";
 import type { SiteSettings } from "@/lib/portfolio";
+import { JhowIsotype } from "@/components/brand/JhowIsotype";
 
 function SocialIcon({ kind }: { kind: "instagram" | "behance" | "linkedin" | "email" }) {
   const common = { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true as const };
@@ -14,7 +14,6 @@ function SocialIcon({ kind }: { kind: "instagram" | "behance" | "linkedin" | "em
 }
 
 export function SiteHeader({ settings }: { settings: SiteSettings | null }) {
-  const [logoHovered, setLogoHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const socials = [
     { key: "instagram" as const, label: "Instagram", href: settings?.instagram },
@@ -23,8 +22,8 @@ export function SiteHeader({ settings }: { settings: SiteSettings | null }) {
     { key: "email" as const, label: "E-mail", href: settings?.email ? `mailto:${settings.email}` : undefined },
   ];
   return <header className="site-header">
-    <Link className="brand" href="/" aria-label={`${settings?.artistName || "Jhow.ars"} — início`} onMouseEnter={() => setLogoHovered(true)} onMouseLeave={() => setLogoHovered(false)} onFocus={() => setLogoHovered(true)} onBlur={() => setLogoHovered(false)}>
-      <Image src={logoHovered ? "/legacy/brand/wordmark-hover.png" : "/legacy/brand/wordmark.gif"} alt={settings?.artistName || "Jhow.ars"} width={1425} height={563} unoptimized priority />
+    <Link className="brand jhow-isotype-link" href="/" aria-label="Jhow.ars — início">
+      <JhowIsotype />
     </Link>
     <button className={`menu-toggle${menuOpen ? " is-open" : ""}`} aria-label={menuOpen ? "Fechar menu" : "Abrir menu"} aria-expanded={menuOpen} aria-controls="site-navigation" onClick={() => setMenuOpen((open) => !open)}><span /><span /><span /></button>
     <nav id="site-navigation" className={menuOpen ? "site-nav is-open" : "site-nav"} aria-label="Navegação principal">
