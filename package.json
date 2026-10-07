@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "cms:seed": "node --experimental-strip-types scripts/seed-sanity.mjs",
-    "sanity:seed": "node --experimental-strip-types scripts/seed-sanity.mjs"
+    "sanity:seed": "node --experimental-strip-types scripts/seed-sanity.mjs",
+    "sanity:i18n-migrate": "node scripts/migrate-i18n.mjs",
+    "sanity:i18n-verify": "node scripts/verify-i18n.mjs"
   },
   "dependencies": {
     "@sanity/client": "^7.11.1",

@@ -1,87 +1,63 @@
 # CMS Jhow.ars
 
-O Sanity é a fonte final do conteúdo. A aplicação mantém um fallback centralizado em `lib/portfolio.ts` durante o desenvolvimento sem credenciais; componentes não consultam Sanity diretamente.
+Sanity é a fonte de verdade do conteúdo. Os documentos existentes continuam com os mesmos IDs; os dados de idioma são campos PT/EN dentro de cada documento.
 
-## Acesso e configuração
+## Acesso
 
-1. Crie ou selecione o projeto Sanity e o dataset que receberá o conteúdo.
-2. Copie `.env.example` para `.env.local` e preencha `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET` e `NEXT_PUBLIC_SANITY_API_VERSION`.
-3. Abra `/studio` no site. Com o ID do projeto configurado, a rota carrega o Sanity Studio incorporado.
-4. Para migrar os documentos e os arquivos de mídia, crie um token com permissão de escrita e configure `SANITY_API_TOKEN` localmente. Não versione esse token.
+Abra `/studio` no endereço do site e entre com a conta autorizada no projeto Sanity `frut5d17`, dataset `production`. A aplicação precisa das variáveis de ambiente Sanity já configuradas para consultar o conteúdo. Não coloque tokens no repositório.
 
-O repositório não contém credenciais ou um projeto Sanity configurado. Portanto, a preparação e a prévia local do seed estão prontas, mas a gravação remota e a validação autenticada do Studio dependem da configuração acima.
+## Home posts
 
-## Rodar a migração
+Em **HOME → Publicações da Home**:
 
-O seed lê `docs/legacy/content.md`, `docs/legacy/assets.md`, `data/legacy-modules.json` e as cópias de capas já verificadas em `public/legacy/`. Para os demais arquivos, usa a URL de maior resolução identificada pela auditoria. Ele não altera o código da interface.
+- `Ativa na Home` controla a presença no conjunto da Home.
+- `Imagem da Home` é independente da capa do projeto; `Imagem para mobile` é opcional.
+- `Orientação` descreve a imagem sem alterar sua proporção; `Presença visual` orienta o peso relativo na composição.
+- `Obra relacionada` e `Projeto relacionado` são referências opcionais.
+- `Imagens deste modal` é a galeria daquele post.
+- Preencha `COR DO FUNDO NO HOVER` e `COR DO TEXTO NO HOVER` com uma das opções da paleta. Esses valores controlam somente o hover daquele post.
+- Para uma cor fora da paleta, escolha `Custom` e informe hexadecimal no formato `#RRGGBB` no campo exibido.
+- Os campos textuais localizados aparecem divididos em **Português** e **English**. O front usa o idioma da rota e recua para Português se o idioma pedido estiver vazio.
+
+## Obras
+
+Em **OBRAS → Todas as obras**, edite título, descrição, técnica, edição e texto alternativo em Português e English. Ano, dimensões, status, imagens, slug e referências são dados compartilhados. Adicione, remova e reordene imagens no array; `Capa` seleciona a imagem de destaque. Relacione a obra ao projeto quando for confirmado.
+
+## Projetos
+
+Em **PROJETOS → Todos os projetos**, mantenha o slug técnico, ano, capa e relações. Título, categoria, resumo, cliente, créditos e texto dos blocos possuem idiomas separados. Os blocos de conteúdo podem ser editados e reordenados no array. Imagens e arquivos de mídia permanecem compartilhados entre idiomas; alt e legendas são localizados.
+
+## Shop
+
+Em **SHOP**, cadastre somente produtos confirmados. Título, descrição, técnica, edição e alt possuem PT/EN. Fotos, preço, disponibilidade, dimensões e URL Ramona são campos próprios do produto. Disponibilidade seleciona as listas **Disponíveis**, **Esgotados** e **Em breve**. Não há checkout integrado.
+
+## Sobre
+
+Em **SOBRE · Página Sobre**, edite introdução, bio, descrições de circulação e seções adicionais em PT/EN. Retrato, nomes próprios, cidades, anos e links são compartilhados.
+
+## Site
+
+Em **SITE · Configurações**, e-mail e redes são globais. Subtítulo, localização, mensagem de disponibilidade e SEO têm versões PT/EN. A imagem Open Graph padrão é compartilhada.
+
+## Migração e verificação
+
+A migração de idioma é aditiva, usa os documentos atuais e não remove IDs, assets ou referências. Confira o plano sem gravar:
 
 ```powershell
-npm run sanity:seed -- --dry-run
+npm run sanity:i18n-migrate -- --dry-run
 ```
 
-Para gravar após conferir a prévia, configure `SANITY_SEED_CONFIRM=YES` junto do token e execute:
+Depois da revisão, a migração real exige confirmação explícita e a flag de produção:
 
 ```powershell
-npm run sanity:seed -- --commit
+$env:I18N_MIGRATION_CONFIRM='YES'
+npm run sanity:i18n-migrate -- --commit --allow-production
 ```
 
-O dataset `production` também exige `--allow-production`. O seed usa IDs determinísticos; consulta o hash SHA-256 dos assets e reaproveita arquivos idênticos; cria documentos ausentes; atualiza documentos já marcados pelo seed somente quando ainda não foram editados; e completa campos ausentes nos IDs da migração V1 com `setIfMissing`. Registros sem identificação de migração e conteúdo alterado são preservados. Nenhum documento ou asset é apagado.
+Para checar documentos, pares de idioma e referências:
 
-Execute o `--dry-run` sempre antes da gravação. Para verificar idempotência remota, execute o comando `--commit` novamente: documentos iguais serão ignorados, IDs permanecerão únicos, e arquivos binariamente iguais serão reutilizados.
+```powershell
+npm run sanity:i18n-verify
+```
 
-## Studio
-
-- **HOME → Publicações da Home:** lista de HomePosts.
-- **OBRAS → Todas as obras:** ordenação por título ou ano.
-- **PROJETOS → Todos os projetos:** ordenação por ano decrescente ou título.
-- **SHOP → Todos / Disponíveis / Esgotados / Em breve:** listas filtradas por disponibilidade.
-- **SOBRE · Página Sobre:** singleton `about-page`.
-- **SITE · Configurações:** singleton `site-settings`.
-
-Home e Shop não têm uma ordem fixa atribuída pelo seed. Os HomePosts têm `weight` vazio; quando esse campo for usado, ele indica frequência relativa na seleção aleatória, não ordenação.
-
-## HOME
-
-1. Em **HOME → Publicações da Home**, crie uma publicação.
-2. Preencha o nome interno e escolha a imagem principal. Ela é independente da capa do projeto.
-3. Use `Imagem para mobile` se houver uma composição diferente para telas menores.
-4. Selecione orientação. `auto` detecta/entrega o controle ao layout; retrato, paisagem e quadrado informam o formato sem recortar ou deformar o arquivo.
-5. Use presença visual para indicar `auto`, pequena, média, grande ou hero. A composição final continua automática.
-6. Marque `Ativa na Home` para incluí-la na seleção aleatória.
-7. Opcionalmente relacione uma Artwork e/ou Project.
-8. Preencha os dados do modal. Em `Imagens deste modal`, adicione, remova e reordene somente as imagens da mesma publicação/obra. A navegação futura do modal não deve misturar posts diferentes.
-
-## OBRAS
-
-Em **OBRAS → Todas as obras**, crie ou edite título, slug, ano, técnica, dimensões, edição, descrição, categorias e status. Na lista de imagens, adicione, remova e arraste para reordenar. Defina a capa e relacione um projeto. Os registros migrados representam imagens identificadas pelo material antigo; as notas indicam quando o legado não fornece um título individual.
-
-## PROJETOS
-
-Em **PROJETOS → Todos os projetos**, edite título, slug, ano, categoria, capa, resumo, cliente, créditos, URL antiga, obras relacionadas e blocos de conteúdo.
-
-Use `+` em **Conteúdo do projeto** para adicionar texto, imagem, galeria, duas imagens, imagem em largura total, GIF/vídeo, legenda ou espaçador. Cada galeria aceita adicionar, remover e reordenar imagens. Use legenda e texto alternativo quando houver informação aprovada. Reordene blocos arrastando-os.
-
-O seed preserva a ordem visual dos módulos de mídia extraídos do HTML. A copy textual integral é mantida em um bloco por projeto; quando o inventário mestre não permite associar cada parágrafo ao módulo visual individual, a migração não inventa esse pareamento.
-
-## SHOP
-
-O legado auditado não confirma produtos, preço, estado de venda ou URL da Ramona. Por isso, o seed não cria produtos de exemplo. Em **SHOP → Todos os produtos**, crie um ShopItem real, adicione fotos próprias do produto, descrição, técnica, dimensões, edição e preço; defina disponibilidade e, se disponível, URL da Ramona. A ausência da URL gera um aviso, não bloqueia a preparação. ShopItem pode se relacionar com Artwork, mas continua sendo um registro de produto distinto.
-
-## SOBRE
-
-Edite a biografia completa, retrato, circulação, clientes, imprensa e seções adicionais em **SOBRE · Página Sobre**. A migração deixa retrato, clientes e imprensa vazios quando o legado não os confirma. Anos/cidades de circulação também ficam vazios quando não identificados.
-
-## SITE
-
-Edite nome artístico, subtítulo, e-mail, Instagram, Behance, LinkedIn, título e descrição SEO e imagem Open Graph padrão em **SITE · Configurações**. A imagem Open Graph permanece vazia até selecionar um asset real.
-
-## Data layer
-
-`lib/portfolio.ts` expõe `getHomePosts()`, `getArtworks()`, `getProjects()`, `getProjectBySlug(slug)`, `getShopItems()`, `getAboutPage()` e `getSiteSettings()`. Essas funções centralizam GROQ, resolução de referências, adapters compatíveis com a implementação V1 e fallbacks de desenvolvimento.
-
-## Arquivos de migração
-
-- `scripts/seed-sanity.mjs`: seed repetível com prévia e confirmação para escrita.
-- `data/legacy-modules.json`: ordem dos módulos e IDs de mídia detectados nos HTMLs salvos.
-- `docs/legacy/`: fonte editorial e inventários usados na migração.
-- `docs/CMS_MIGRATION_REPORT.md`: cobertura, dados incompletos e limitações verificadas nesta rodada.
+O seed legado é separado. Sempre rode `npm run sanity:seed -- --dry-run` antes de qualquer carga de conteúdo. Seeds não substituem documentos editados e não removem conteúdo.

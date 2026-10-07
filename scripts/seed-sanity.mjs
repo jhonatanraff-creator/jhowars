@@ -37,12 +37,12 @@ for (const line of assetRows) {
 const adobeVideo = readFileSync(path.join(root, "docs/legacy/assets.md"), "utf8").split(/\r?\n/).find((line) => line.includes("UNKNOWN / VIDEO") && line.includes("/o-que-fica-project-editorial") && line.includes(".mp4"))?.split("|").map((part) => part.trim()).find((cell) => cell.includes("https://"))?.match(/https:\/\/[^\s`]+/)?.[0];
 const contentSource = readFileSync(path.join(root, "docs/legacy/content.md"), "utf8");
 const projectInventory = readFileSync(path.join(root, "docs/legacy/projects.md"), "utf8");
-const projectSummary = (title) => {
+const projectSummary = (title, language) => {
   const start = projectInventory.indexOf(`## ${title}`);
   if (start < 0) return undefined;
   const next = projectInventory.indexOf("\n## ", start + 4);
   const section = projectInventory.slice(start, next < 0 ? projectInventory.length : next);
-  const match = section.match(/- \*\*Descrição (?:PT|EN) \(literal\):\*\*\s*([\s\S]*?)(?=\n- \*\*|$)/);
+  const match = section.match(new RegExp(`- \\*\\*Descrição ${language} \\(literal\\):\\*\\*\\s*([\\s\\S]*?)(?=\\n- \\*\\*|$)`));
   const text = match?.[1]?.trim();
   return text && text !== "NÃO IDENTIFICADO" ? text : undefined;
 };
@@ -53,18 +53,30 @@ const projectSection = (title) => {
   const nextLevel2 = contentSource.indexOf("\n## ", start + 5);
   const boundaries = [nextLevel3, nextLevel2].filter((index) => index >= 0);
   const raw = contentSource.slice(start, boundaries.length ? Math.min(...boundaries) : contentSource.length);
-  let inCopy = false;
-  const paragraphs = [];
+  let language;
+  const paragraphs = { pt: [], en: [] };
   for (const line of raw.split(/\r?\n/)) {
-    if (/^#### (Português|English|Idioma NÃO IDENTIFICADO)/.test(line)) { inCopy = true; continue; }
-    if (/^#### /.test(line)) { inCopy = false; continue; }
-    if (inCopy && line.startsWith("> ")) {
+    if (line.startsWith("#### Português")) { language = "pt"; continue; }
+    if (line.startsWith("#### English")) { language = "en"; continue; }
+    if (/^#### /.test(line)) { language = undefined; continue; }
+    if (language && line.startsWith("> ")) {
       const text = line.slice(2).trim();
-      if (text && !text.includes("Essa versão comunica cliente + edição + temas + problema editorial + sua solução visual sem virar textão.") && !text.includes("Esse texto funciona bem no ponto em que você sai das artes isoladas e começa a mostrar as páginas e duplas.")) paragraphs.push(text);
+      if (text && !text.includes("Essa versão comunica cliente + edição + temas + problema editorial + sua solução visual sem virar textão.") && !text.includes("Esse texto funciona bem no ponto em que você sai das artes isoladas e começa a mostrar as páginas e duplas.")) paragraphs[language].push(text);
     }
   }
-  return paragraphs.join("\n\n");
+  return { pt: paragraphs.pt.join("\n\n"), en: paragraphs.en.join("\n\n") };
 };
+const localized = (pt, en = "") => ({ pt: pt || "", en: en || "" });
+const ptProjectTitles = new Map(projectMetadata.map(([slug, title]) => [slug, ({
+  "VEJA SAÚDE — Editorial Illustration": "VEJA SAÚDE", "Corpos Gráficos": "Corpos Gráficos", "BESTAS DO DIA - Brazilian Wildlife": "BESTAS DO DIA",
+  "BUMBA MEU BOI": "BUMBA MEU BOI", "FOGO FÓSSIL - Selection of illustrations": "FOGO FÓSSIL", "Posters 2024 - Experimental Print and Illustration": "Posters 2024",
+  "O Que Fica - Project Editorial": "O Que Fica", "Countenance - Selection of illustrations": "Countenance",
+})[title] || title]));
+const categoryEnglish = new Map([["Ilustração / identidade visual", "Illustration / visual identity"], ["Ilustração / risografia", "Illustration / risograph"], ["Ilustração / impressão", "Illustration / print"], ["Projeto editorial / livro", "Editorial project / book"], ["Impressão experimental e ilustração", "Experimental print and illustration"], ["Ilustração digital", "Digital illustration"]]);
+const hoverPairs = [
+  ["#2856A6", "#FFFFFF"], ["#E72C25", "#FFFFFF"], ["#FFC400", "#111111"], ["#ED3E83", "#FFFFFF"],
+  ["#F36B21", "#111111"], ["#111111", "#FFFFFF"], ["#2856A6", "#FFFFFF"], ["#E72C25", "#FFFFFF"],
+];
 const coverBySlug = new Map([
   ["veja-saude-editorial-illustration", "/legacy/veja-saude/cover.png"], ["corpos-graficos", "/legacy/corpos-graficos/cover.png"],
   ["bestas-do-dia-brazilian-wildlife", "/legacy/bestas-do-dia/cover.png"], ["bumba-meu-boi", "/legacy/bumba-meu-boi/cover.png"],
@@ -185,11 +197,11 @@ for (const [projectIndex, [slug, title, year, category, coverId]] of projectMeta
   if (!idOrder.includes(coverId)) idOrder.unshift(coverId);
   for (const id of additionalProjectImages.get(slug) || []) if (!idOrder.includes(id)) idOrder.push(id);
   const body = projectSection(sectionTitle.get(title) || title);
-  const summary = projectSummary(title);
+  const summary = { pt: projectSummary(title, "PT"), en: projectSummary(title, "EN") };
   const projectBlocks = [];
   let copyInserted = false;
   for (const [moduleIndex, mod] of (moduleRecord?.modules || []).entries()) {
-    if (mod.type.includes("text")) { if (body && !copyInserted) { projectBlocks.push({ _type: "textBlock", _key: "legacy-copy", body }); copyInserted = true; } continue; }
+    if (mod.type.includes("text")) { if ((body.pt || body.en) && !copyInserted) { projectBlocks.push({ _type: "textBlock", _key: "legacy-copy", body: localized(body.pt, body.en) }); copyInserted = true; } continue; }
     if (mod.type.includes("video")) { if (adobeVideo) projectBlocks.push({ _type: "mediaBlock", _key: `legacy-video-${moduleIndex}`, externalUrl: adobeVideo, caption: "" }); continue; }
     const ids = mod.ids.filter((id) => assetById.get(id)?.page === `/${slug}`);
     if (!ids.length) continue;
@@ -205,7 +217,7 @@ for (const [projectIndex, [slug, title, year, category, coverId]] of projectMeta
       for (const [index, id] of ids.entries()) projectBlocks.push({ _type: "imageBlock", _key: `legacy-image-${moduleIndex}-${index}`, _legacyAssetId: id, alt: "", widthStyle: "full" });
     }
   }
-  if (body && !copyInserted) projectBlocks.unshift({ _type: "textBlock", _key: "legacy-copy", body });
+  if ((body.pt || body.en) && !copyInserted) projectBlocks.unshift({ _type: "textBlock", _key: "legacy-copy", body: localized(body.pt, body.en) });
   for (const id of additionalProjectImages.get(slug) || []) if (!(moduleRecord?.modules || []).some((mod) => mod.ids.includes(id))) projectBlocks.push({ _type: "imageBlock", _key: `legacy-additional-${id}`, _legacyAssetId: id, alt: "", widthStyle: "full" });
   const coverRef = await getMedia(coverId, slug, client);
   const dimensions = localDimensions(coverPath);
@@ -221,29 +233,31 @@ for (const [projectIndex, [slug, title, year, category, coverId]] of projectMeta
         const rest = { ...block }; delete rest._legacyAssetId;
         const mediaUrl = assetById.get(block._legacyAssetId)?.url || localFor(block._legacyAssetId, slug) || "";
         if (/\.gif(?:\?|$)/i.test(mediaUrl) || /\.gif$/i.test(mediaUrl)) contentBlocks.push({ _type: "mediaBlock", _key: block._key, media: { _type: "file", asset: ref(asset) }, alt: "", caption: "" });
-        else contentBlocks.push({ ...rest, image: imageField(asset) });
+        else contentBlocks.push({ ...rest, ...(typeof rest.alt === "string" ? { alt: localized(rest.alt, rest.alt) } : {}), ...(typeof rest.caption === "string" ? { caption: localized(rest.caption, rest.caption) } : {}), image: imageField(asset) });
       }
     }
     else if (block._type === "mediaBlock") {
       const asset = block._legacyAssetId ? mediaRefs.get(block._legacyAssetId) : undefined;
       const rest = { ...block }; delete rest._legacyAssetId;
-      if (asset) contentBlocks.push({ ...rest, media: { _type: "file", asset: ref(asset) } });
+      if (asset) contentBlocks.push({ ...rest, ...(typeof rest.alt === "string" ? { alt: localized(rest.alt, rest.alt) } : {}), ...(typeof rest.caption === "string" ? { caption: localized(rest.caption, rest.caption) } : {}), media: { _type: "file", asset: ref(asset) } });
       else if (block.externalUrl) contentBlocks.push(rest);
     }
-    else { const images = []; for (const entry of block.images) { const asset = mediaRefs.get(entry._legacyAssetId); if (asset) { const rest = { ...entry }; delete rest._legacyAssetId; images.push({ ...rest, image: imageField(asset) }); } } if (images.length) contentBlocks.push({ ...block, images }); }
+    else { const images = []; for (const entry of block.images) { const asset = mediaRefs.get(entry._legacyAssetId); if (asset) { const rest = { ...entry }; delete rest._legacyAssetId; images.push({ ...rest, ...(typeof rest.alt === "string" ? { alt: localized(rest.alt, rest.alt) } : {}), ...(typeof rest.caption === "string" ? { caption: localized(rest.caption, rest.caption) } : {}), image: imageField(asset) }); } } if (images.length) contentBlocks.push({ ...block, images }); }
   }
-  const artwork = withFingerprint({ _id: artworkId, _type: "artwork", title, slug: { _type: "slug", current: slug }, ...(year ? { year } : {}), description: summary, images: [{ _type: "imageEntry", _key: "cover", image: imageField(coverRef), alt: title }], coverImage: imageField(coverRef), categories: category ? [category] : [], status: "archive", project: ref(projectIdValue), legacyUrl: `https://jhowars.com/${slug}`, altText: title, notes: "Registro inicial baseado na imagem de capa do projeto. O inventário legado não identifica títulos individuais para as demais imagens; consulte os blocos do projeto para a sequência visual completa." });
+  const titleLocalized = localized(ptProjectTitles.get(slug), title);
+  const artwork = withFingerprint({ _id: artworkId, _type: "artwork", title: titleLocalized, slug: { _type: "slug", current: slug }, ...(year ? { year } : {}), description: localized(summary.pt, summary.en), images: [{ _type: "imageEntry", _key: "cover", image: imageField(coverRef), alt: titleLocalized }], coverImage: imageField(coverRef), categories: category ? [category] : [], status: "archive", project: ref(projectIdValue), legacyUrl: `https://jhowars.com/${slug}`, altText: titleLocalized, notes: "Registro inicial baseado na imagem de capa do projeto. O inventário legado não identifica títulos individuais para as demais imagens; consulte os blocos do projeto para a sequência visual completa." });
   const relatedArtworkIds = [artworkId];
   for (const [extraIndex, id] of (additionalProjectImages.get(slug) || []).entries()) {
     const extraAsset = mediaRefs.get(id);
     const extraArtworkId = `legacy-artwork-${slug}-${slug.startsWith("posters-") ? "09" : "10"}`;
     if (extraAsset) {
       relatedArtworkIds.push(extraArtworkId);
-      records.push(withFingerprint({ _id: extraArtworkId, _type: "artwork", title, slug: { _type: "slug", current: `${slug}-image-${extraIndex + 2}` }, ...(year ? { year } : {}), ...(category ? { categories: [category] } : {}), images: [{ _type: "imageEntry", _key: "image", image: imageField(extraAsset), alt: title }], coverImage: imageField(extraAsset), status: "archive", project: ref(projectIdValue), legacyUrl: `https://jhowars.com/${slug}`, altText: title, notes: "Segunda imagem associada ao cartão deste projeto no inventário legado. O material não identifica um título individual nem confirma se é uma obra independente." }));
+      records.push(withFingerprint({ _id: extraArtworkId, _type: "artwork", title: titleLocalized, slug: { _type: "slug", current: `${slug}-image-${extraIndex + 2}` }, ...(year ? { year } : {}), ...(category ? { categories: [category] } : {}), images: [{ _type: "imageEntry", _key: "image", image: imageField(extraAsset), alt: titleLocalized }], coverImage: imageField(extraAsset), status: "archive", project: ref(projectIdValue), legacyUrl: `https://jhowars.com/${slug}`, altText: titleLocalized, notes: "Segunda imagem associada ao cartão deste projeto no inventário legado. O material não identifica um título individual nem confirma se é uma obra independente." }));
     }
   }
-  const project = withFingerprint({ _id: projectIdValue, _type: "project", title, slug: { _type: "slug", current: slug }, ...(year ? { year } : {}), ...(category ? { category } : {}), coverImage: imageField(coverRef), ...(summary ? { summary } : {}), legacyUrl: `https://jhowars.com/${slug}`, artworks: relatedArtworkIds.map((id, index) => arrayRef(id, `artwork-${index}`)), contentBlocks });
-  const home = withFingerprint({ _id: `legacy-home-${slug}`, _type: "homePost", internalName: title, enabled: true, image: imageField(coverRef), orientation, sizeHint: "auto", artwork: ref(artworkId), project: ref(projectIdValue), modalTitle: title, ...(year ? { year } : {}), description: summary, modalGallery: [{ _type: "imageEntry", _key: "cover", image: imageField(coverRef), alt: title }], altText: title });
+  const project = withFingerprint({ _id: projectIdValue, _type: "project", title: titleLocalized, slug: { _type: "slug", current: slug }, ...(year ? { year } : {}), ...(category ? { category: localized(category, categoryEnglish.get(category) || category) } : {}), coverImage: imageField(coverRef), ...(summary.pt || summary.en ? { summary: localized(summary.pt, summary.en) } : {}), legacyUrl: `https://jhowars.com/${slug}`, artworks: relatedArtworkIds.map((id, index) => arrayRef(id, `artwork-${index}`)), contentBlocks });
+  const [hoverBackgroundColor, hoverTextColor] = hoverPairs[projectIndex];
+  const home = withFingerprint({ _id: `legacy-home-${slug}`, _type: "homePost", internalName: title, enabled: true, image: imageField(coverRef), orientation, sizeHint: "auto", artwork: ref(artworkId), project: ref(projectIdValue), modalTitle: titleLocalized, ...(year ? { year } : {}), description: localized(summary.pt, summary.en), modalGallery: [{ _type: "imageEntry", _key: "cover", image: imageField(coverRef), alt: titleLocalized }], altText: titleLocalized, hoverBackgroundColor, hoverTextColor });
   records.push(project, artwork, home);
 }
 
@@ -252,21 +266,36 @@ const bio = [
   "O trabalho nasce da minha vivência, da observação do cotidiano e de um imaginário atravessado pelo Brasil, pela art naïf e pela exploração de formas, cores e narrativas visuais que surgem da vontade de criar e contar histórias por imagem.",
   "Parte desse processo acontece em diálogo com outros artistas, no Grafatório e no coletivo Mãos Sujas, em Londrina, onde a impressão artesanal, a troca e o fazer coletivo também alimentam e expandem esse universo em construção.",
 ].join("\n\n");
-const about = withFingerprint({ _id: "about-page", _type: "aboutPage", bio, circulation: [
-  { _type: "circulationItem", _key: "maos-sujas", name: "Mãos Sujas", organization: "Grafatório", city: "Londrina", description: "Coletivo de arte gráfica e impressão artesanal" },
-  { _type: "circulationItem", _key: "miolos", name: "Miolo(s)", organization: "Editora Lote 42", city: "São Paulo", state: "SP", years: [2024, 2025], description: "Encontro de cultura gráfica promovido desde 2014 pela biblioteca mário de andrade e pela editora lote 42." },
-  { _type: "circulationItem", _key: "printa-feira", name: "Printa-Feira", organization: "SESC São Paulo / Editora Lote 42", city: "São Paulo", state: "SP", years: [2025], description: "Feira de arte gráfica e processos de impressão artesanal, realizada pelo SESC São Paulo em parceria com a Editora Lote 42." },
-  { _type: "circulationItem", _key: "mamute", name: "Mamute", organization: "Gloriosa Cultural", city: "Curitiba", state: "PR", years: [2025], description: "Feira de arte gráfica, literária, artesanal e autoral, realizada pela Gloriosa Cultural, com apoio do MinC e da Petrobras." },
-  { _type: "circulationItem", _key: "festival-dobra", name: "Festival Dobra", organization: "Grafatório", city: "Londrina", state: "PR", years: [2023, 2024, 2025], description: "Festival de arte impressa promovido pelo Grafatório." },
-  { _type: "circulationItem", _key: "mini-dobra", name: "Mini Dobra", organization: "Grafatório", city: "Londrina", state: "PR", years: [2023, 2024, 2025], description: "Versão recorrente e intimista do Festival Dobra, realizada no Grafatório." },
-  { _type: "circulationItem", _key: "feira-goma", name: "Feira Goma", city: "Londrina", state: "PR", years: [2025], description: "Encontro criativo e coletivo de artistas e produtores independentes." },
-  { _type: "circulationItem", _key: "encontro-ilustre", name: "Encontro Ilustre", city: "Londrina", state: "PR", years: [2024, 2025], description: "Evento voltado à ilustração autoral e independente." },
+const bioEn = [
+  "I am Jhow.ars, an illustrator and designer, an alter ego of Jhonatan Rafael. This is an authorial project where art and design meet in constant experimentation, between the handmade and the digital, between unique works and series that unfold across different formats.",
+  "My work grows from my lived experience, observing everyday life, and an imagination shaped by Brazil, art naïf, and the exploration of forms, colors, and visual narratives that arise from the desire to create and tell stories through images.",
+  "Part of this process happens in dialogue with other artists, at Grafatório and in the Mãos Sujas collective, in Londrina, where handmade printing, exchange, and collective making also nourish and expand this universe in progress.",
+].join("\n\n");
+const circulationTranslations = [
+  "A collective focused on graphic art and handmade printing.",
+  "A graphic culture gathering organized since 2014 by Mário de Andrade Library and Editora Lote 42.",
+  "A graphic art and handmade printing fair organized by SESC São Paulo in partnership with Editora Lote 42.",
+  "A graphic art, literature, craft, and independent publishing fair organized by Gloriosa Cultural, with support from MinC and Petrobras.",
+  "A printmaking festival organized by Grafatório.",
+  "A recurring, more intimate version of Festival Dobra, held at Grafatório.",
+  "A creative, collaborative gathering of independent artists and producers.",
+  "An event focused on authorial and independent illustration.",
+];
+const about = withFingerprint({ _id: "about-page", _type: "aboutPage", bio: localized(bio, bioEn), circulation: [
+  { _type: "circulationItem", _key: "maos-sujas", name: "Mãos Sujas", organization: "Grafatório", city: "Londrina", description: localized("Coletivo de arte gráfica e impressão artesanal", circulationTranslations[0]) },
+  { _type: "circulationItem", _key: "miolos", name: "Miolo(s)", organization: "Editora Lote 42", city: "São Paulo", state: "SP", years: [2024, 2025], description: localized("Encontro de cultura gráfica promovido desde 2014 pela biblioteca mário de andrade e pela editora lote 42.", circulationTranslations[1]) },
+  { _type: "circulationItem", _key: "printa-feira", name: "Printa-Feira", organization: "SESC São Paulo / Editora Lote 42", city: "São Paulo", state: "SP", years: [2025], description: localized("Feira de arte gráfica e processos de impressão artesanal, realizada pelo SESC São Paulo em parceria com a Editora Lote 42.", circulationTranslations[2]) },
+  { _type: "circulationItem", _key: "mamute", name: "Mamute", organization: "Gloriosa Cultural", city: "Curitiba", state: "PR", years: [2025], description: localized("Feira de arte gráfica, literária, artesanal e autoral, realizada pela Gloriosa Cultural, com apoio do MinC e da Petrobras.", circulationTranslations[3]) },
+  { _type: "circulationItem", _key: "festival-dobra", name: "Festival Dobra", organization: "Grafatório", city: "Londrina", state: "PR", years: [2023, 2024, 2025], description: localized("Festival de arte impressa promovido pelo Grafatório.", circulationTranslations[4]) },
+  { _type: "circulationItem", _key: "mini-dobra", name: "Mini Dobra", organization: "Grafatório", city: "Londrina", state: "PR", years: [2023, 2024, 2025], description: localized("Versão recorrente e intimista do Festival Dobra, realizada no Grafatório.", circulationTranslations[5]) },
+  { _type: "circulationItem", _key: "feira-goma", name: "Feira Goma", city: "Londrina", state: "PR", years: [2025], description: localized("Encontro criativo e coletivo de artistas e produtores independentes.", circulationTranslations[6]) },
+  { _type: "circulationItem", _key: "encontro-ilustre", name: "Encontro Ilustre", city: "Londrina", state: "PR", years: [2024, 2025], description: localized("Evento voltado à ilustração autoral e independente.", circulationTranslations[7]) },
 ], additionalSections: [
-  { _type: "object", _key: "base", heading: "Base", body: "Base em Londrina - 2023 – atual" },
-  { _type: "object", _key: "contact", heading: "Contato (texto legado)", body: "Este é um lugar de experimentação e processo. Se algo aqui te atravessou e virou ideia, projeto ou vontade de colaboração, o caminho começa por um e-mail." },
-  { _type: "object", _key: "site-details", heading: "Informações do site (texto legado)", body: "Based in: Brasil\nDisponível para: colaborações, parcerias e projetos com identidade autoral" },
+  { _type: "object", _key: "base", heading: localized("Base", "Based"), body: localized("Base em Londrina - 2023 – atual", "Based in Londrina — 2023–present") },
+  { _type: "object", _key: "contact", heading: localized("Contato (texto legado)", "Contact (legacy copy)"), body: localized("Este é um lugar de experimentação e processo. Se algo aqui te atravessou e virou ideia, projeto ou vontade de colaboração, o caminho começa por um e-mail.", "This is a place for experimentation and process. If something here resonated with you and became an idea, a project, or a desire to collaborate, the path begins with an email.") },
+  { _type: "object", _key: "site-details", heading: localized("Informações do site (texto legado)", "Site information (legacy copy)"), body: localized("Based in: Brasil\nDisponível para: colaborações, parcerias e projetos com identidade autoral", "Based in: Brazil\nAvailable for: collaborations, partnerships and projects with a distinct identity") },
 ] });
-const settings = withFingerprint({ _id: "site-settings", _type: "siteSettings", artistName: "Jhow.ars", artistSubtitle: "VISUAL ARTIST & ILLUSTRATOR", email: "jhow@jhowars.com", instagram: "https://www.instagram.com/jhow.ars/", behance: "https://www.behance.net/Jhonatanraff", linkedin: "https://www.linkedin.com/in/jhonatanrafaelars", seoTitle: "Jhow.ars — Visual Artist, Illustration & Editorial Design", seoDescription: "Visual artist and designer focused on illustration, print editions, art books, zines and experimental visual projects. Authorial portfolio by Jhow.ars." });
+const settings = withFingerprint({ _id: "site-settings", _type: "siteSettings", artistName: "Jhow.ars", artistSubtitle: localized("ARTISTA VISUAL E ILUSTRADOR", "VISUAL ARTIST & ILLUSTRATOR"), locationLabel: localized("Brasil", "Brazil"), footerAvailability: localized("Disponível para: colaborações, parcerias e projetos com identidade autoral", "Available for: collaborations, partnerships and projects with a distinct identity"), email: "jhow@jhowars.com", instagram: "https://www.instagram.com/jhow.ars/", behance: "https://www.behance.net/Jhonatanraff", linkedin: "https://www.linkedin.com/in/jhonatanrafaelars", seoTitle: localized("Jhow.ars — Artista visual, ilustração e design editorial", "Jhow.ars — Visual Artist, Illustration & Editorial Design"), seoDescription: localized("Portfólio de Jhow.ars, artista visual e designer com foco em ilustração, edições impressas, livros de artista, zines e projetos visuais experimentais.", "Visual artist and designer focused on illustration, print editions, art books, zines and experimental visual projects. Authorial portfolio by Jhow.ars.") });
 records.push(about, settings);
 
 const recordIds = new Set(records.map((record) => record._id));

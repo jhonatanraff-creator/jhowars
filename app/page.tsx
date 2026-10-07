@@ -1,7 +1,3 @@
-import { ArtworkWall } from "@/components/artwork-wall";
-import { getHomePosts } from "@/lib/portfolio";
+import { HomeContent } from "@/components/portfolio-pages";
 
-export default async function HomePage() {
-  const homePosts = await getHomePosts();
-  return <div className="home-page"><ArtworkWall homePosts={homePosts} /></div>;
-}
+export default function HomePage() { return <HomeContent locale="pt" />; }

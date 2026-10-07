@@ -4,8 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { HomePost } from "@/lib/portfolio";
+import { copy, localizedHref, type Locale } from "@/lib/i18n";
 
-const palettes = ["#e63b2e", "#f2c230", "#1d4fa3", "#e94c95", "#f07a2b", "#111111"];
+const palettes = ["#2856A6", "#E72C25", "#FFC400", "#ED3E83", "#F36B21", "#111111", "#FFFFFF"];
 
 function stableHash(value: string) {
   let hash = 0;
@@ -51,7 +52,7 @@ function PostImage({ post, alt, priority = false }: { post: HomePost; alt: strin
   </>;
 }
 
-export function ArtworkWall({ homePosts }: { homePosts: HomePost[] }) {
+export function ArtworkWall({ homePosts, locale = "pt" }: { homePosts: HomePost[]; locale?: Locale }) {
   const [posts, setPosts] = useState<HomePost[]>(homePosts.slice(0, 8));
   const [activePostId, setActivePostId] = useState<string | null>(null);
   const [imageIndex, setImageIndex] = useState(0);
@@ -60,6 +61,7 @@ export function ArtworkWall({ homePosts }: { homePosts: HomePost[] }) {
   const openerRef = useRef<HTMLElement | null>(null);
 
   const selected = activePostId === null ? null : homePosts.find((post) => post._id === activePostId) ?? null;
+  const labels = copy[locale];
   const gallery = useMemo(() => {
     if (!selected) return [];
     const selectedImages = selected.modalGallery.filter((entry) => entry.image);
@@ -162,9 +164,11 @@ export function ArtworkWall({ homePosts }: { homePosts: HomePost[] }) {
 
   const renderPost = (post: HomePost, index: number, slotIndex: number) => {
     const orientation = orientationFor(post);
-    const hoverColor = palettes[stableHash(post._id) % palettes.length];
+    const fallbackBackground = palettes[stableHash(post._id) % palettes.length];
+    const hoverBackground = post.hoverBackgroundColor === "custom" ? post.hoverBackgroundCustom : post.hoverBackgroundColor;
+    const hoverText = post.hoverTextColor === "custom" ? post.hoverTextCustom : post.hoverTextColor;
     const ratio = post.imageAspectRatio && post.imageAspectRatio > 0 ? post.imageAspectRatio : orientation === "portrait" ? 0.72 : orientation === "square" ? 1 : 1.36;
-    return <article key={`${post._id}-${index}`} className={`home-post scene-item scene-item-${slotIndex + 1} orientation-${orientation} size-hint-${post.sizeHint || "auto"} ${index % 2 ? "hover-title-right" : ""}`} style={{ "--post-width": sizeFor(post, orientation), "--hover-color": hoverColor, "--image-ratio": ratio } as React.CSSProperties}>
+    return <article key={`${post._id}-${index}`} className={`home-post scene-item scene-item-${slotIndex + 1} orientation-${orientation} size-hint-${post.sizeHint || "auto"} ${index % 2 ? "hover-title-right" : ""}`} style={{ "--post-width": sizeFor(post, orientation), "--hover-color": hoverBackground || fallbackBackground, "--hover-text": hoverText || "#FFFFFF", "--image-ratio": ratio } as React.CSSProperties}>
       <button className="home-post-trigger" onClick={(event) => { openerRef.current = event.currentTarget; setImageIndex(0); setActivePostId(post._id); }} aria-label={`Ver ${post.altText || post.modalTitle || post.artwork?.title || post.project?.title || post.internalName}`}>
         <span className="home-post-default"><PostImage post={post} alt={post.altText || post.internalName} priority={index === 0} /></span>
         <span className="home-post-hover-state" aria-hidden="true"><span className="home-post-hover-image"><PostImage post={post} alt="" /></span><span className="home-post-hover-title">{post.modalTitle || post.artwork?.title || post.project?.title || post.internalName}</span></span>
@@ -194,9 +198,9 @@ export function ArtworkWall({ homePosts }: { homePosts: HomePost[] }) {
     </div>
     {selected && currentImage && <div className="modal-scrim" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
       <section className="art-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <button className="modal-x" ref={closeRef} onClick={close} aria-label="Fechar">×</button>
+        <button className="modal-x" ref={closeRef} onClick={close} aria-label={labels.close}>×</button>
         <div className="modal-art"><Image src={currentImage.image} alt={currentImage.alt || selected.altText || title} fill sizes="(max-width: 760px) 90vw, 56vw" priority /></div>
-        <div className="modal-info"><p className="eyebrow">Obra{year ? ` · ${year}` : ""}</p>
+        <div className="modal-info"><p className="eyebrow">{labels.artwork}{year ? ` · ${year}` : ""}</p>
           <h2 id="modal-title">{title}</h2>
           <dl className="modal-metadata">
             {technique && <div><dt>Técnica</dt><dd>{technique}</dd></div>}
@@ -204,8 +208,8 @@ export function ArtworkWall({ homePosts }: { homePosts: HomePost[] }) {
             {edition && <div><dt>Edição</dt><dd>{edition}</dd></div>}
           </dl>
           {description && <p className="modal-description">{description}</p>}
-          {projectSlug && <Link className="project-cta" href={`/projetos/${projectSlug}`}>Ver projeto completo <span>→</span></Link>}
-          {gallery.length > 1 && <div className="modal-nav"><span>{String(imageIndex + 1).padStart(2, "0")} / {String(gallery.length).padStart(2, "0")}</span><button onClick={() => stepImage(-1)} aria-label="Imagem anterior">←</button><button onClick={() => stepImage(1)} aria-label="Próxima imagem">→</button></div>}
+          {projectSlug && <Link className="project-cta" href={`${localizedHref("/projetos", locale)}/${projectSlug}`}>{labels.fullProject} <span>→</span></Link>}
+          {gallery.length > 1 && <div className="modal-nav"><span>{String(imageIndex + 1).padStart(2, "0")} / {String(gallery.length).padStart(2, "0")}</span><button onClick={() => stepImage(-1)} aria-label={labels.previous}>←</button><button onClick={() => stepImage(1)} aria-label={labels.next}>→</button></div>}
         </div>
       </section>
     </div>}
