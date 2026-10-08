@@ -39,6 +39,7 @@ export function localizeTree<T>(value: T, locale: Locale): T {
 
 const routeMap = [
   [/^\/$/, "/en"], [/^\/en$/, "/"],
+  [/^\/home-v2$/, "/en/home-v2"], [/^\/en\/home-v2$/, "/home-v2"],
   [/^\/projetos$/, "/en/projects"], [/^\/en\/projects$/, "/projetos"],
   [/^\/sobre$/, "/en/about"], [/^\/en\/about$/, "/sobre"],
   [/^\/shop$/, "/en/shop"], [/^\/en\/shop$/, "/shop"],

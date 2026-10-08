@@ -280,6 +280,14 @@ html,body,.site-header,.site-footer{background:#fff}
 }
 @media(prefers-reduced-motion:reduce){.jhow-isotype__star{animation:none}}
 
+/* The alternate Home keeps its horizontal scroll inside its own desktop stage. */
+body:has(.home-v2-page){height:100vh;height:100dvh;overflow:hidden;display:grid;grid-template-rows:var(--header-height) minmax(0,1fr) var(--footer-height)}
+body:has(.home-v2-page)>main{min-height:0;overflow:hidden}
+@media(max-width:1000px),(hover:none),(pointer:coarse){
+  body:has(.home-v2-page){height:auto;min-height:100dvh;overflow-x:hidden;overflow-y:auto;display:block}
+  body:has(.home-v2-page)>main{min-height:0;overflow:visible}
+}
+
 /* CMS-managed Projects archive and About page interiors. */
 .site-nav[data-has-active="true"] .primary-links a:not([aria-current="page"]){opacity:.4}
 .primary-links a{transition:opacity 160ms ease,color 160ms ease;text-decoration:none;border:0;outline:none;background:transparent;box-shadow:none}
