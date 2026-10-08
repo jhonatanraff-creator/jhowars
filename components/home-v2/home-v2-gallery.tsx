@@ -14,24 +14,49 @@ type Slot = { x: number; y: number; width: number; maxHeight: number; angle: num
 
 const templates: Slot[][] = [
   [
-    { x: .205, y: .45, width: .37, maxHeight: .76, angle: -2.5 },
-    { x: .57, y: .34, width: .34, maxHeight: .64, angle: 2 },
-    { x: .79, y: .7, width: .25, maxHeight: .49, angle: -2 },
-    { x: .43, y: .77, width: .2, maxHeight: .32, angle: 3 },
+    { x: .23, y: .48, width: .43, maxHeight: .82, angle: -3 },
+    { x: .52, y: .29, width: .32, maxHeight: .53, angle: 2.5 },
+    { x: .78, y: .45, width: .4, maxHeight: .78, angle: 3 },
+    { x: .52, y: .78, width: .28, maxHeight: .36, angle: -2 },
   ],
   [
-    { x: .32, y: .5, width: .43, maxHeight: .7, angle: 1.5 },
-    { x: .7, y: .3, width: .3, maxHeight: .59, angle: -3 },
-    { x: .76, y: .75, width: .25, maxHeight: .43, angle: 2 },
-    { x: .17, y: .76, width: .19, maxHeight: .33, angle: -2 },
+    { x: .25, y: .45, width: .43, maxHeight: .77, angle: 2 },
+    { x: .55, y: .69, width: .34, maxHeight: .5, angle: -3 },
+    { x: .77, y: .34, width: .38, maxHeight: .66, angle: 1.5 },
+    { x: .16, y: .75, width: .24, maxHeight: .34, angle: -2 },
   ],
   [
-    { x: .24, y: .35, width: .4, maxHeight: .61, angle: -1.5 },
-    { x: .59, y: .62, width: .34, maxHeight: .7, angle: 2.5 },
-    { x: .83, y: .25, width: .23, maxHeight: .4, angle: -3 },
-    { x: .26, y: .78, width: .23, maxHeight: .34, angle: 2 },
+    { x: .23, y: .36, width: .42, maxHeight: .68, angle: -1.5 },
+    { x: .58, y: .57, width: .36, maxHeight: .72, angle: 2.5 },
+    { x: .82, y: .29, width: .3, maxHeight: .48, angle: -3 },
+    { x: .28, y: .77, width: .28, maxHeight: .36, angle: 2 },
   ],
 ];
+
+const alternateTemplates: Slot[][] = [
+  [
+    { x: .26, y: .42, width: .42, maxHeight: .78, angle: 2 },
+    { x: .57, y: .65, width: .35, maxHeight: .5, angle: -2.5 },
+    { x: .79, y: .32, width: .4, maxHeight: .72, angle: -1.5 },
+    { x: .46, y: .27, width: .27, maxHeight: .36, angle: 3 },
+  ],
+  [
+    { x: .23, y: .58, width: .41, maxHeight: .7, angle: -2 },
+    { x: .52, y: .27, width: .34, maxHeight: .51, angle: 2 },
+    { x: .76, y: .50, width: .4, maxHeight: .73, angle: 3 },
+    { x: .53, y: .77, width: .27, maxHeight: .35, angle: -2 },
+  ],
+];
+
+function SceneArtwork({ number, shift }: { number: number; shift: number }) {
+  return <div className={`${styles.sceneArtwork} ${styles[`artworkSet${number % 3}`]}`} style={{ "--ambient-x": `${shift}px` } as CSSProperties} aria-hidden="true">
+    <svg className={styles.sun} viewBox="0 0 220 220"><path d="M112 6 128 49 166 20 160 67 211 55 181 91 218 116 174 125 196 172 152 152 139 212 111 170 75 211 76 158 23 177 50 136 2 110 50 99 22 51 70 71 79 14 101 55Z" fill="#e9a316"/></svg>
+    <svg className={styles.brush} viewBox="0 0 400 220"><path d="M8 139C72 88 95 5 155 27c38 14 40 71 80 46 50-31 70 21 138-31-9 47-58 54-70 87-18 49-65-13-95 17-49 49-107-9-200 38 41-24 40-35 0-45Z" fill="#d62a22"/><path d="M42 176c77-36 115-12 170-15M114 35c44 11 55 41 82 43" fill="none" stroke="#f2c7a1" strokeWidth="5" strokeLinecap="round"/></svg>
+    <svg className={styles.squiggle} viewBox="0 0 270 230"><path d="M14 206C112 176 129 117 79 106c-51-11-30 62 21 49 78-19 26-103 93-122 32-9 51-4 64-18" fill="none" stroke="#164c91" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    <svg className={styles.dots} viewBox="0 0 150 180"><g fill="#e9232e"><circle cx="26" cy="22" r="9"/><circle cx="91" cy="15" r="6"/><circle cx="115" cy="52" r="10"/><circle cx="47" cy="68" r="6"/><circle cx="79" cy="101" r="9"/><circle cx="20" cy="124" r="8"/><circle cx="126" cy="144" r="7"/><circle cx="51" cy="165" r="5"/></g></svg>
+    <svg className={styles.leaf} viewBox="0 0 260 270"><path d="M15 270c49-92 96-162 227-252-20 77-40 132-86 174-45 42-89 23-141 78Z" fill="#174c3b"/><path d="M31 254c58-74 105-121 184-196M70 202l-3-66m52 16 80 6" fill="none" stroke="#f4e7d2" strokeWidth="5"/></svg>
+  </div>;
+}
 
 function chunkPosts(posts: HomePost[]): HomePost[][] {
   const groups: HomePost[][] = [];
@@ -49,19 +74,17 @@ function ratioFor(post: HomePost): number {
   return post.orientation === "landscape" ? 1.5 : post.orientation === "square" ? 1 : .72;
 }
 
-function pieceGeometry(post: HomePost, slot: Slot, stage: Size, variant: number, index: number) {
+function pieceGeometry(post: HomePost, slot: Slot, stage: Size) {
   const stageWidth = Math.max(stage.width, 760);
-  const stageHeight = Math.max(stage.height, 500);
+  const stageHeight = Math.max(stage.height, 340);
   const ratio = ratioFor(post);
-  const scale = post.sizeHint === "small" ? .84 : post.sizeHint === "large" ? 1.1 : post.sizeHint === "hero" ? 1.14 : 1;
+  const scale = post.sizeHint === "small" ? .87 : post.sizeHint === "large" ? 1.08 : post.sizeHint === "hero" ? 1.13 : 1;
   const width = Math.min(stageWidth * slot.width * scale, stageHeight * slot.maxHeight * ratio);
   const height = width / ratio;
   const inset = Math.min(24, stageWidth * .025);
-  const jitterX = variant ? Math.sin((index + 1) * (variant + 3) * 2.7) * stageWidth * .027 : 0;
-  const jitterY = variant ? Math.cos((index + 2) * (variant + 4) * 1.9) * stageHeight * .035 : 0;
-  const left = Math.max(inset, Math.min(stageWidth - width - inset, stageWidth * slot.x - width / 2 + jitterX));
-  const top = Math.max(12, Math.min(stageHeight - height - 12, stageHeight * slot.y - height / 2 + jitterY));
-  const angle = slot.angle + (variant ? Math.sin(index + variant * 2) * 2 : 0);
+  const left = Math.max(inset, Math.min(stageWidth - width - inset, stageWidth * slot.x - width / 2));
+  const top = Math.max(12, Math.min(stageHeight - height - 12, stageHeight * slot.y - height / 2));
+  const angle = slot.angle;
   return { left, top, width, height, angle };
 }
 
@@ -88,7 +111,7 @@ const ArtworkPiece = memo(function ArtworkPiece({ post, index, sceneIndex, slot,
   const [dragging, setDragging] = useState(false);
   const gesture = useRef<{ x: number; y: number; origin: Offset; moved: boolean } | null>(null);
   const suppressClick = useRef(false);
-  const geometry = pieceGeometry(post, slot, stage, variant, index);
+  const geometry = pieceGeometry(post, slot, stage);
   const maxX = stage.width - geometry.left - geometry.width - 12;
   const minX = 12 - geometry.left;
   const maxY = stage.height - geometry.top - geometry.height - 12;
@@ -142,7 +165,7 @@ const ArtworkPiece = memo(function ArtworkPiece({ post, index, sceneIndex, slot,
           priority={index < 2} draggable={false} className={styles.image} />
       </picture>
     </span>
-    <span className={styles.pieceLabel}><strong>{title}</strong>{(post.technique || post.artwork?.technique) ? <small>{post.technique || post.artwork?.technique}</small> : null}</span>
+    <span className={styles.pieceLabel}><span><strong>{title}</strong>{(post.technique || post.artwork?.technique) ? <small>{post.technique || post.artwork?.technique}</small> : null}</span><span className={styles.labelArrow} aria-hidden="true">↗</span></span>
   </button>;
 });
 
@@ -209,9 +232,9 @@ export function HomeV2Gallery({ posts, locale }: Props) {
   const [sceneIndex, setSceneIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [variants, setVariants] = useState<Record<number, number>>({});
-  const sceneWidth = Math.max(760, Math.min(size.width * .92, 1440));
+  const sceneWidth = Math.max(760, size.width * .96);
   const pieceStage = useMemo(() => ({ width: sceneWidth, height: size.height }), [sceneWidth, size.height]);
-  const step = sceneWidth - 40;
+  const step = sceneWidth - 140;
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 1001px) and (hover: hover) and (pointer: fine)");
@@ -269,17 +292,17 @@ export function HomeV2Gallery({ posts, locale }: Props) {
             {scenes.map((scene, number) => {
               const start = runningIndex;
               runningIndex += scene.length;
-              return <div className={styles.scene} style={{ "--scene-width": `${sceneWidth}px`, "--stage-height": `${size.height}px` } as CSSProperties} key={scene[0]._id} aria-label={`${locale === "en" ? "Composition" : "Composição"} ${number + 1}`}>
+              return <div className={styles.scene} style={{ "--scene-width": `${sceneWidth}px`, "--stage-height": `${size.height}px` } as CSSProperties} key={scene[0]._id} aria-label={`${locale === "en" ? "Composition" : "Composição"} ${number + 1}`}><SceneArtwork number={number} shift={(progress - number / Math.max(1, scenes.length - 1)) * 36} />
                 {scene.map((post, localIndex) => <ArtworkPiece key={post._id} post={post} index={start + localIndex} sceneIndex={number}
-                  slot={scene.length === 1 ? { x: .5, y: .5, width: .55, maxHeight: .82, angle: -1.5 } : templates[number % templates.length][localIndex]} stage={pieceStage} variant={variants[number] || 0} desktop={desktop} onOpen={openModal} />)}
+                  slot={scene.length === 1 ? { x: .5, y: .5, width: .55, maxHeight: .82, angle: -1.5 } : variants[number] ? alternateTemplates[(variants[number] - 1) % alternateTemplates.length][localIndex] : templates[number % templates.length][localIndex]} stage={pieceStage} variant={variants[number] || 0} desktop={desktop} onOpen={openModal} />)}
               </div>;
             })}
           </div>
         </div>
       </div>
       <div className={styles.controls} aria-label={locale === "en" ? "Gallery controls" : "Controles da galeria"}>
-        <div className={styles.explore}><span>{locale === "en" ? "Explore the gallery" : "Explore a galeria"}</span><span className={styles.progressLine}><i style={{ width: `${progress * 100}%` }} /></span></div>
-        <div className={styles.controlActions}><button type="button" onClick={() => setVariants((current) => ({ ...current, [sceneIndex]: (current[sceneIndex] || 0) + 1 }))} aria-label={locale === "en" ? "Rearrange current composition" : "Reorganizar composição atual"}>{locale === "en" ? "Rearrange" : "Reorganizar"}</button><button type="button" onClick={() => setVariants((current) => ({ ...current, [sceneIndex]: 0 }))} disabled={!variants[sceneIndex]} aria-label={locale === "en" ? "Restore initial composition" : "Restaurar composição inicial"}>{locale === "en" ? "Restore" : "Restaurar"}</button><span className={styles.counter}>{String(sceneIndex + 1).padStart(2, "0")} / {String(scenes.length).padStart(2, "0")}</span><button type="button" onClick={() => navigate(-1)} disabled={sceneIndex === 0} aria-label={locale === "en" ? "Previous composition" : "Composição anterior"}>←</button><button type="button" onClick={() => navigate(1)} disabled={sceneIndex === scenes.length - 1} aria-label={locale === "en" ? "Next composition" : "Próxima composição"}>→</button></div>
+        <div className={styles.explore}><span className={styles.signature}>© {new Date().getFullYear()} Jhow.ars</span><span className={styles.progressLine}><i style={{ width: `${progress * 100}%` }} /></span></div>
+        <div className={styles.controlActions}><button type="button" onClick={() => setVariants((current) => ({ ...current, [sceneIndex]: current[sceneIndex] === 1 ? 2 : 1 }))} aria-label={locale === "en" ? "Rearrange current composition" : "Reorganizar composição atual"}>{locale === "en" ? "Rearrange" : "Reorganizar"}</button><button type="button" onClick={() => setVariants((current) => ({ ...current, [sceneIndex]: 0 }))} disabled={!variants[sceneIndex]} aria-label={locale === "en" ? "Restore initial composition" : "Restaurar composição inicial"}>{locale === "en" ? "Restore" : "Restaurar"}</button><span className={styles.counter}>{String(sceneIndex + 1).padStart(2, "0")} / {String(scenes.length).padStart(2, "0")}</span><button type="button" onClick={() => navigate(-1)} disabled={sceneIndex === 0} aria-label={locale === "en" ? "Previous composition" : "Composição anterior"}>←</button><button type="button" onClick={() => navigate(1)} disabled={sceneIndex === scenes.length - 1} aria-label={locale === "en" ? "Next composition" : "Próxima composição"}>→</button></div>
       </div>
     </>}
     {active !== null ? <ArtworkModal posts={posts} index={active} locale={locale} onClose={closeModal} onChange={changeModal} /> : null}
