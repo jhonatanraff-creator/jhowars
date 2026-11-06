@@ -1,97 +1,140 @@
 "use client";
 
-import { useEffect, useMemo, useState, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { flushSync } from "react-dom";
 import { type curate, panelSource, planPanel } from "./composition";
 
-const firstWindow = { start: 0, end: 4 };
+const initial = { base: 0, start: 0, end: 4, spacer: 0, runway: 0 };
 const gcd = (a: number, b: number): number => b ? gcd(b, a % b) : a;
 
+type Geometry = { before: number; period: number; offsets: number[] };
+const within = (g: Geometry, index: number) => {
+  if (index <= g.before || !g.period) return g.offsets[Math.min(index, g.before)];
+  const relative = index - g.before;
+  const pass = g.offsets[g.before + g.period] - g.offsets[g.before];
+  return g.offsets[g.before + relative % g.period] + Math.floor(relative / g.period) * pass;
+};
+
+function locate(g: Geometry, offset: number) {
+  if (offset <= 0) return 0;
+  let lower = 0;
+  let upper = g.before;
+  let cycles = 0;
+  if (g.period && offset >= g.offsets[g.before]) {
+    const pass = g.offsets[g.before + g.period] - g.offsets[g.before];
+    cycles = Math.floor((offset - g.offsets[g.before]) / pass);
+    offset -= cycles * pass;
+    lower = g.before;
+    upper += g.period;
+  }
+  while (lower < upper) {
+    const pivot = Math.ceil((lower + upper) / 2);
+    if (g.offsets[pivot] <= offset) lower = pivot;
+    else upper = pivot - 1;
+  }
+  return cycles * g.period + lower;
+}
+
+function height(panel: ReturnType<typeof planPanel>, width: number, canvas: number, mobile: boolean) {
+  if (mobile) return Math.round(panel.mobileHeight * width / 100);
+  const bottom = Math.max(0, ...panel.tiles.map(({ slot: [, y, w, h], ratio }) =>
+    y * canvas / 100 + Math.min(w * width / (100 * ratio), h * canvas / 100)));
+  return Math.ceil(bottom + 52);
+}
+
 export function useEditionWindow(catalog: ReturnType<typeof curate>, surface: RefObject<HTMLDivElement | null>, marker: RefObject<HTMLDivElement | null>, measure: RefObject<HTMLDivElement | null>, paused: boolean) {
-  const [window, setWindow] = useState(firstWindow);
-  const geometry = useMemo(() => {
+  const [edition, setEdition] = useState(initial);
+  const current = useRef(initial);
+  const [metrics, setMetrics] = useState<{ width: number; canvas: number; mobile: boolean } | null>(null);
+  const lastMetrics = useRef(metrics);
+  const plan = useMemo(() => {
     const before = Math.ceil(catalog.rest.length / 4);
-    const pass = Math.ceil(catalog.all.length / 4);
+    const pass = 3 * Math.ceil(catalog.all.length / 4);
     const period = pass ? 10 * pass / gcd(10, pass) : 0;
-    const heights = [0];
-    for (let i = 0; i < before + period; i++) {
-      heights.push(heights[i] + planPanel(panelSource(catalog, i), i).mobileHeight);
-    }
-    return { before, period, heights };
+    return { before, period, panels: Array.from({ length: before + period }, (_, i) => planPanel(panelSource(catalog, i), i)) };
   }, [catalog]);
 
-  const mobileUnits = (i: number) => {
-    const { before, period, heights } = geometry;
-    if (!period || i <= before) return heights[Math.min(i, heights.length - 1)];
-    const count = i - before;
-    return heights[before + (count % period)] + Math.floor(count / period) * (heights[before + period] - heights[before]);
-  };
+  const geometry = useMemo(() => {
+    if (!metrics) return null;
+    const offsets = [0];
+    for (const panel of plan.panels) offsets.push(offsets.at(-1)! + height(panel, metrics.width, metrics.canvas, metrics.mobile));
+    return { before: plan.before, period: plan.period, offsets };
+  }, [metrics, plan]);
+
+  useEffect(() => {
+    const root = surface.current;
+    const probe = measure.current;
+    if (!root || !probe) return;
+    const breakpoint = matchMedia("(max-width: 900px)");
+    function read() {
+      const width = root!.getBoundingClientRect().width;
+      const canvas = probe!.getBoundingClientRect().height;
+      const mobile = breakpoint.matches;
+      const old = lastMetrics.current;
+      if (width <= 0 || canvas <= 0 || (old?.width === width && old.canvas === canvas && old.mobile === mobile)) return;
+      lastMetrics.current = { width, canvas, mobile };
+      setMetrics(lastMetrics.current);
+    }
+    const observer = new ResizeObserver(read);
+    observer.observe(root);
+    observer.observe(probe);
+    breakpoint.addEventListener("change", read);
+    read();
+    return () => { observer.disconnect(); breakpoint.removeEventListener("change", read); };
+  }, [measure, surface]);
 
   useEffect(() => {
     const start = marker.current;
-    const probe = measure.current;
-    const root = surface.current;
-    if (!start || !probe || !root || paused || !catalog.all.length) return;
+    if (!start || !geometry?.period || paused) return;
+    const g = geometry;
     let frame = 0;
-    let pixels = probe.getBoundingClientRect().height;
-    let width = root.getBoundingClientRect().width;
-    const breakpoint = matchMedia("(max-width: 900px)");
-
-    function locate(offset: number) {
-      if (offset <= 0) return 0;
-      if (!breakpoint.matches) return Math.floor(offset / Math.max(1, pixels));
-      const units = offset * 100 / Math.max(1, width);
-      const { before, period, heights } = geometry;
-      let base = 0;
-      let lower = 0;
-      let upper = before;
-      let target = units;
-      if (units >= heights[before] && period) {
-        const height = heights[before + period] - heights[before];
-        const cycles = Math.floor((units - heights[before]) / height);
-        base = cycles * period;
-        target -= cycles * height;
-        lower = before;
-        upper = before + period;
-      }
-      while (lower < upper) {
-        const pivot = Math.floor((lower + upper + 1) / 2);
-        if (heights[pivot] <= target) lower = pivot;
-        else upper = pivot - 1;
-      }
-      return base + lower;
-    }
-
     function update() {
       frame = 0;
-      const top = -start!.getBoundingClientRect().top;
-      const first = locate(top);
-      const last = locate(top + innerHeight);
-      const from = Math.max(0, first - 2);
-      const until = Math.max(4, last + (top > 0 ? 5 : 4));
-      setWindow(old => old.start === from && old.end === until ? old : { start: from, end: until });
+      const old = current.current;
+      const physicalTop = -start!.getBoundingClientRect().top;
+      const origin = within(g, old.base);
+      const offset = origin + physicalTop;
+      const first = locate(g, offset);
+      const last = locate(g, offset + innerHeight);
+      // Keep the physical scroll range finite. Move the origin with the
+      // visible composition as an anchor, including when moving backwards.
+      const base = first - old.base >= 48 ? first - 24
+        : old.base > 0 && first - old.base <= 4 ? Math.max(0, old.base - 24) : old.base;
+      const from = Math.max(base, first - 2);
+      const until = Math.max(base + 4, last + 5);
+      const spacer = within(g, from) - within(g, base);
+      const runway = Math.ceil(innerHeight * 5);
+      if (old.base === base && old.start === from && old.end === until && old.spacer === spacer && old.runway === runway) return;
+      const next = { base, start: from, end: until, spacer, runway };
+      current.current = next;
+      if (base !== old.base || first >= old.end || first < old.start) {
+        flushSync(() => setEdition(next));
+        if (base !== old.base) {
+          const markerY = scrollY + start!.getBoundingClientRect().top;
+          window.scrollTo({ top: markerY + offset - within(g, base), behavior: "instant" });
+        }
+      } else {
+        setEdition(next);
+      }
     }
-
-    function queue() {
-      if (!frame) frame = requestAnimationFrame(update);
-    }
-
-    const resize = new ResizeObserver(() => {
-      pixels = probe.getBoundingClientRect().height;
-      width = root.getBoundingClientRect().width;
-      queue();
-    });
-    resize.observe(root);
-    resize.observe(probe);
+    function queue() { if (!frame) frame = requestAnimationFrame(update); }
     addEventListener("scroll", queue, { passive: true });
-    breakpoint.addEventListener("change", queue);
+    addEventListener("resize", queue);
     queue();
-    return () => {
-      resize.disconnect();
-      removeEventListener("scroll", queue);
-      breakpoint.removeEventListener("change", queue);
-      cancelAnimationFrame(frame);
-    };
-  }, [catalog, geometry, marker, measure, paused, surface]);
+    return () => { removeEventListener("scroll", queue); removeEventListener("resize", queue); cancelAnimationFrame(frame); };
+  }, [geometry, marker, paused]);
 
-  return { ...window, mobileUnits: mobileUnits(window.start) };
+  const toTop = useCallback(() => {
+    if (current.current.base) {
+      current.current = initial;
+      flushSync(() => setEdition(initial));
+    }
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
+
+  return {
+    ...edition,
+    toTop,
+    heightAt: (i: number) => geometry ? within(geometry, i + 1) - within(geometry, i) : undefined,
+  };
 }

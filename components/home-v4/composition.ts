@@ -1,12 +1,12 @@
 import type { HomePost } from "@/lib/portfolio";
 
-type Slot = [x: number, y: number, w: number, h: number];
+export type Slot = [x: number, y: number, w: number, h: number];
 const opening: Slot[] = [
   [0, 10, 18.5, 48], [25.3, 0, 15, 40], [62.3, 0, 14, 27], [82.3, 14, 14.7, 36],
   [12, 70, 19, 27], [37, 67, 11, 29], [52.7, 38, 18.5, 53], [78.5, 72, 21.5, 22],
 ];
 const arrangements: Slot[][] = [
-  [[2, 5, 27, 63], [39, 2, 23, 30], [72, 19, 26, 40], [41, 52, 36, 42], [0, 77, 22, 17]],
+  [[2, 5, 27, 63], [39, 2, 23, 30], [72, 19, 26, 40], [41, 52, 30, 42], [0, 77, 22, 17]],
   [[1, 24, 56, 51], [66, 3, 17, 37], [79, 55, 19, 39], [0, 2, 24, 15], [40, 1, 17, 16]],
   [[7, 1, 23, 47], [66, 14, 31, 56], [32, 57, 29, 34], [0, 65, 22, 27], [72, 79, 23, 16]],
   [[0, 4, 27, 38], [32, 21, 30, 40], [73, 1, 24, 43], [8, 57, 21, 35], [64, 66, 34, 27]],
@@ -68,7 +68,7 @@ export function planPanel(posts: HomePost[], index: number) {
     mobileY += width / ratio + [14, 20, 13, 25, 16][spread] + (index < 0 && i === 1 ? 28 : 0);
     if (i === 1) statementTop = mobileY - 30;
     if (index < 0 && ordered.length === 1) { statementTop = mobileY; mobileY += 26; }
-    return { ...tile, mobile: [left, top, width] as const };
+    return { ...tile, ratio, mobile: [left, top, width] as const };
   });
   return { tiles, mobileHeight: mobileY, statementTop };
 }
@@ -81,9 +81,16 @@ export function panelSource(posts: ReturnType<typeof curate>, index: number) {
   if (index < remainingPanels) return posts.rest.slice(index * 4, index * 4 + 4);
   const panelsPerPass = Math.ceil(size / 4);
   const step = index - remainingPanels;
+  const pass = Math.floor(step / panelsPerPass);
   const position = step % panelsPerPass;
   const start = Math.floor(position * size / panelsPerPass);
   const end = Math.floor((position + 1) * size / panelsPerPass);
-  // Change arrangements on each pass while keeping every publication in the sequence.
-  return Array.from({ length: end - start }, (_, i) => posts.all[start + i]);
+  const head = Math.floor(size / panelsPerPass);
+  const tail = Math.floor((panelsPerPass - 1) * size / panelsPerPass);
+  const middle = tail - head;
+  return Array.from({ length: end - start }, (_, i) => {
+    const j = start + i;
+    // Keep boundary groups disjoint; rotate interior works between editions.
+    return posts.all[j >= head && j < tail ? head + (j - head + (pass % 3) * Math.ceil(middle / 3)) % middle : j];
+  });
 }

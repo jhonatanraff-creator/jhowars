@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type { HomePost } from "@/lib/portfolio";
 import type { Locale } from "@/lib/i18n";
@@ -19,7 +20,7 @@ function fit(frame: HTMLElement, ratio: number) {
 }
 
 function fly(host: HTMLDialogElement, source: HTMLImageElement, from: DOMRect, to: DOMRect, reverse: boolean) {
-  if (!source.complete || !source.naturalWidth || !from.width || !to.width || reducedMotion()) return;
+  if (!source.animate || !source.complete || !source.naturalWidth || !from.width || !to.width || reducedMotion()) return;
   const clone = document.createElement("img");
   clone.src = source.currentSrc || source.src;
   clone.alt = "";
@@ -36,8 +37,8 @@ function fly(host: HTMLDialogElement, source: HTMLImageElement, from: DOMRect, t
   return { animation, read: () => clone.getBoundingClientRect(), remove: () => clone.remove() };
 }
 
-export function Proof({ post, posts, locale, trigger, onChange }: {
-  post: HomePost | null; posts: HomePost[]; locale: Locale;
+export function Proof({ post, posts, locale, trigger, onChange, dark, toggleTheme }: {
+  post: HomePost | null; posts: HomePost[]; locale: Locale; dark: boolean; toggleTheme: () => void;
   trigger: RefObject<HTMLButtonElement | null>; onChange: (post: HomePost | null) => void;
 }) {
   const en = locale === "en";
@@ -47,6 +48,8 @@ export function Proof({ post, posts, locale, trigger, onChange }: {
   const running = useRef<ReturnType<typeof fly>>(undefined);
   const original = useRef<string | null>(null);
   const unlock = useRef<(() => void) | null>(null);
+  const scrollBefore = useRef(0);
+  const closing = useRef(false);
   const touch = useRef<{ x: number; y: number } | null>(null);
   const [slide, setSlide] = useState(0);
   const [leaving, setLeaving] = useState(false);
@@ -63,9 +66,22 @@ export function Proof({ post, posts, locale, trigger, onChange }: {
     original.current = post._id;
     const image = trigger.current?.querySelector("img");
     const from = image?.getBoundingClientRect();
+    scrollBefore.current = window.scrollY;
+    const body = document.body.style;
+    const root = document.documentElement.style;
+    const previousStyles = [body.overflow, root.overflow, root.overscrollBehavior, root.scrollbarGutter, body.paddingInlineEnd];
+    const gutter = window.innerWidth - document.documentElement.clientWidth;
+    const padding = getComputedStyle(document.body).paddingInlineEnd;
+    if (gutter > 0) body.paddingInlineEnd = `calc(${padding} + ${gutter}px)`;
+    root.scrollbarGutter = "auto";
+    body.overflow = "hidden";
+    root.overflow = "hidden";
+    root.overscrollBehavior = "none";
+    unlock.current = () => {
+      [body.overflow, root.overflow, root.overscrollBehavior, root.scrollbarGutter, body.paddingInlineEnd] = previousStyles;
+      unlock.current = null;
+    };
     el.showModal();
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     if (image && from && frame.current) {
       const to = fit(frame.current, ratioOf(post) ?? (image.naturalWidth / image.naturalHeight || 1));
       const flight = fly(el, image, from, to, false);
@@ -79,15 +95,24 @@ export function Proof({ post, posts, locale, trigger, onChange }: {
       }
     }
     closeButton.current?.focus({ preventScroll: true });
-    unlock.current = () => { document.body.style.overflow = previousOverflow; unlock.current = null; };
   }, [post, trigger]);
 
   useLayoutEffect(() => {
-    const el = dialog.current;
-    return () => { if (el?.open) el.close(); unlock.current?.(); cancelFlight(); };
+    function resize() {
+      const el = dialog.current;
+      if (!el?.open || closing.current) return;
+      cancelFlight();
+      delete el.dataset.flying;
+    }
+    window.addEventListener("resize", resize);
+    return () => {
+      window.removeEventListener("resize", resize);
+      unlock.current?.();
+      cancelFlight();
+    };
   }, []);
 
-  if (!post) return <dialog ref={dialog} className={styles.dialog} />;
+  if (!post) return null;
 
   const added = [...(post.modalGallery ?? []), ...(post.artwork?.images ?? [])];
   const images = [{ image: post.image!, alt: post.altText }, ...added].filter((item, i, list) => item.image && list.findIndex(other => other.image === item.image) === i);
@@ -102,13 +127,16 @@ export function Proof({ post, posts, locale, trigger, onChange }: {
 
   function close() {
     const el = dialog.current;
-    if (!el || leaving) return;
+    if (!el || closing.current) return;
+    closing.current = true;
     const image = trigger.current?.querySelector("img");
     const rect = image?.getBoundingClientRect();
     const flightPosition = running.current?.read();
     const finish = () => {
       delete el.dataset.flying;
-      el.close(); unlock.current?.(); setLeaving(false); setSlide(0); onChange(null);
+      el.close(); unlock.current?.();
+      if (window.scrollY !== scrollBefore.current) window.scrollTo({ top: scrollBefore.current, behavior: "instant" });
+      closing.current = false; setLeaving(false); setSlide(0); onChange(null);
       trigger.current?.focus({ preventScroll: true });
     };
     cancelFlight();
@@ -126,20 +154,22 @@ export function Proof({ post, posts, locale, trigger, onChange }: {
 
   function move(direction: number) {
     const next = posts[index + direction];
-    if (!next || leaving) return;
+    if (!next || closing.current) return;
     cancelFlight();
     if (dialog.current) delete dialog.current.dataset.flying;
     setSlide(0); onChange(next);
   }
 
-  return <dialog ref={dialog} className={styles.dialog} aria-labelledby="v4-proof-title" data-leaving={leaving}
+  return createPortal(<dialog ref={dialog} className={styles.dialog} data-theme={dark ? "dark" : "light"} aria-labelledby="v4-proof-title" data-leaving={leaving}
     onCancel={event => { event.preventDefault(); close(); }}
     onClick={event => { if (event.target === event.currentTarget) close(); }}
     onKeyDown={event => {
       if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); move(event.key === "ArrowLeft" ? -1 : 1); }
     }}>
     <div className={styles.proof}>
-      <button ref={closeButton} className={styles.close} type="button" onClick={close} aria-label={en ? "Close artwork" : "Fechar obra"}>×</button>
+      <div className={styles.proofControls}>
+      <button type="button" aria-pressed={dark} className={styles.theme} aria-label={dark ? (en ? "Switch to light theme" : "Ativar tema claro") : (en ? "Switch to dark theme" : "Ativar tema escuro")} onClick={toggleTheme}><span /></button>
+      <button ref={closeButton} className={styles.close} type="button" onClick={close} aria-label={en ? "Close artwork" : "Fechar obra"}>×</button></div>
       <div ref={frame} className={styles.proofFrame}
         onTouchStart={event => { touch.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }; }}
         onTouchEnd={event => { const origin = touch.current; touch.current = null; const end = event.changedTouches[0]; if (!origin || !end) return; const dx = end.clientX - origin.x; if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(end.clientY - origin.y) * 1.5) move(dx < 0 ? 1 : -1); }}>
@@ -161,5 +191,5 @@ export function Proof({ post, posts, locale, trigger, onChange }: {
         </div>
       </div>
     </div>
-  </dialog>;
+  </dialog>, document.body);
 }

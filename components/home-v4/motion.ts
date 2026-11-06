@@ -41,6 +41,8 @@ export function useTheme(page: RefObject<HTMLDivElement | null>) {
 }
 
 export function usePrintReveal(root: RefObject<HTMLDivElement | null>) {
+  const recent = useRef(new Set<string>());
+  const furthest = useRef(-1);
   useEffect(() => {
     const node = root.current;
     if (!node || !("IntersectionObserver" in window)) return;
@@ -48,7 +50,12 @@ export function usePrintReveal(root: RefObject<HTMLDivElement | null>) {
       for (const { target, isIntersecting } of entries) {
         if (!isIntersecting) continue;
         const tile = target as HTMLElement;
-        if (!reducedMotion() && tile.dataset.printed !== "true") tile.dataset.printed = "true";
+        const index = Number(tile.closest<HTMLElement>("[data-leaf]")?.dataset.leaf);
+        const key = `${index}:${tile.dataset.work}`;
+        if (!reducedMotion() && index >= furthest.current - 16 && !recent.current.has(key)) tile.dataset.printed = "true";
+        recent.current.add(key);
+        if (recent.current.size > 128) recent.current.delete(recent.current.values().next().value!);
+        furthest.current = Math.max(furthest.current, index);
         io.unobserve(tile);
       }
     }, { threshold: .14 });
