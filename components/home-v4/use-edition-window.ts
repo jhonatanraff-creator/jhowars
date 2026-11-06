@@ -39,7 +39,8 @@ function height(panel: ReturnType<typeof planPanel>, width: number, canvas: numb
   if (mobile) return Math.round(panel.mobileHeight * width / 100);
   const bottom = Math.max(0, ...panel.tiles.map(({ slot: [, y, w, h], ratio }) =>
     y * canvas / 100 + Math.min(w * width / (100 * ratio), h * canvas / 100)));
-  return Math.ceil(bottom + 52);
+  // Leave room for captions at the seam without padding the entire composition.
+  return Math.ceil(bottom + 43);
 }
 
 export function useEditionWindow(catalog: ReturnType<typeof curate>, surface: RefObject<HTMLDivElement | null>, marker: RefObject<HTMLDivElement | null>, measure: RefObject<HTMLDivElement | null>, paused: boolean) {

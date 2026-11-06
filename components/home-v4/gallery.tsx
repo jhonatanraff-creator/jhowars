@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import type { HomePost, SiteSettings } from "@/lib/portfolio";
 import type { Locale } from "@/lib/i18n";
 import { curate, panelSource, planPanel, ratioOf } from "./composition";
+import { EditorialAccents } from "./editorial-accents";
 import { useEditionWindow } from "./use-edition-window";
 import { Proof } from "./proof";
 import { usePrintReveal, useTheme } from "./motion";
@@ -21,6 +22,7 @@ export function Gallery({ posts, locale, settings }: { posts: HomePost[]; locale
   const marker = useRef<HTMLDivElement>(null);
   const measure = useRef<HTMLDivElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
+  const scrollHint = useRef<HTMLSpanElement>(null);
 
   const trigger = useRef<HTMLButtonElement | null>(null);
   const [menu, setMenu] = useState(false);
@@ -31,6 +33,22 @@ export function Gallery({ posts, locale, settings }: { posts: HomePost[]; locale
   const window = useEditionWindow(catalog, surface, marker, measure, active !== null);
   const panels = useMemo(() => catalog.all.length ? Array.from({ length: window.end - window.start }, (_, i) => { const index = window.start + i; return { index, panel: planPanel(panelSource(catalog, index), index) }; }) : [], [catalog, window.end, window.start]);
   usePrintReveal(surface);
+
+  const hasWorks = catalog.all.length > 0;
+  useEffect(() => {
+    const hint = scrollHint.current;
+    if (!hasWorks || !hint) return;
+    function updateHint() {
+      hint!.toggleAttribute("data-dismissed", scrollY > Math.min(160, innerHeight * .24));
+    }
+    updateHint();
+    addEventListener("scroll", updateHint, { passive: true });
+    addEventListener("resize", updateHint);
+    return () => {
+      removeEventListener("scroll", updateHint);
+      removeEventListener("resize", updateHint);
+    };
+  }, [hasWorks]);
 
   function closeMenu(restore = false) {
     setMenu(false);
@@ -54,9 +72,9 @@ export function Gallery({ posts, locale, settings }: { posts: HomePost[]; locale
   function renderPanel(panel: ReturnType<typeof planPanel>, id: number) {
     return <div className={styles.leaf} data-opening={id < 0} data-leaf={id} style={{ "--mobile-height": panel.mobileHeight, "--statement-top": panel.statementTop, height: id < 0 ? undefined : window.heightAt(id) } as CSSProperties}>
       {id < 0 && <h1 className={styles.statement}><span>{en ? "Artist, illustrator, printmaker" : "Artista, ilustrador, impressor"}</span><span><em>{en ? "questioner" : "questionador"}</em>{en ? ", etc." : ", etc."}</span></h1>}
-      {panel.tiles.map(({ post, slot: [x, y, w, h], mobile: [mx, my, mw], ink }) => {
+      {panel.tiles.map(({ post, slot: [x, y, w, h], mobile: [mx, my, mw] }, order) => {
         const ratio = ratioOf(post);
-        return <figure key={post._id} data-tile data-work={post._id} data-ink={ink} data-print={id >= 0 ? "" : undefined} className={styles.tile} style={{ "--x": x, "--y": y, "--w": w, "--h": h, "--mx": mx, "--my": my, "--mw": mw, "--ratio": ratio ?? 1 } as CSSProperties}>
+        return <figure key={post._id} data-tile data-work={post._id} data-print={id >= 0 ? "" : undefined} className={styles.tile} style={{ "--x": x, "--y": y, "--w": w, "--h": h, "--mx": mx, "--my": my, "--mw": mw, "--ratio": ratio ?? 1, "--align": w >= 43 ? .5 : 0, "--reveal-delay": `${Math.min(order, 3) * 42}ms` } as CSSProperties}>
           <button type="button" className={styles.artButton} aria-label={`${en ? "Open" : "Abrir"} ${nameOf(post)}`} onClick={event => { trigger.current = event.currentTarget; setActive(post); }}>
             <span className={styles.frame}>
               {ratio ? <Image src={post.image!} alt={post.altText || nameOf(post)} fill sizes={`(max-width: 900px) ${Math.ceil(mw * .91)}vw, ${Math.ceil(w * .938)}vw`} priority={id < 0} /> : <Image src={post.image!} alt={post.altText || nameOf(post)} fill sizes="90vw" />}
@@ -66,6 +84,7 @@ export function Gallery({ posts, locale, settings }: { posts: HomePost[]; locale
           </button>
         </figure>;
       })}
+      <EditorialAccents layout={panel.layout} mirror={panel.mirror} locale={locale} />
     </div>;
   }
 
@@ -93,14 +112,15 @@ export function Gallery({ posts, locale, settings }: { posts: HomePost[]; locale
     <footer className={styles.imprint} data-v4-footer>
       <div className={styles.imprintInner}>
         <a className={styles.isotype} href="#topo" aria-label={en ? "Back to top" : "Voltar ao início"} onClick={event => { event.preventDefault(); window.toTop(); }}><Image src="/brand/home-v4/isotipo.svg" alt="" width={556} height={598} priority /></a>
-        {email && <a className={styles.footerContact} href={contact}>{email}</a>}
-        <span className={styles.footerPlace}>{en ? "Based in Brazil" : "Brasil"}</span><span className={styles.footerCredit}>© Jhow.ars</span>
-        {!!catalog.all.length && <button type="button" className={styles.explore} aria-label={en ? "Explore more works" : "Explorar mais obras"} onClick={() => {
-          const view = document.documentElement.clientHeight;
-          globalThis.scrollBy({ top: Math.round(view * .78), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
-        }}><span className={styles.exploreText}>{en ? "Explore" : "Explorar"}</span> <span aria-hidden="true">↓</span></button>}
+        <a className={styles.footerContact} href="mailto:jhow@jhowars.com">jhow@jhowars.com</a>
+        <span className={styles.footerPlace}>Based in: {en ? "Brazil" : "Brasil"}</span>
+        <span className={styles.footerAvailability}>{en ? "Available for collaborations, partnerships and projects with a distinct voice" : "Disponível para: colaborações, parcerias e projetos com identidade autoral"}</span>
+        <span className={styles.footerCredit}>© 2026 Jhow.ars. All rights reserved</span>
       </div>
     </footer>
+    {hasWorks && <span ref={scrollHint} className={styles.scrollHint} data-v4-scroll-hint aria-hidden="true">
+      <svg width="14" height="22" viewBox="0 0 14 22" fill="none"><path d="M7 1v19m-5-5 5 5 5-5" stroke="currentColor" strokeWidth="1.15" strokeLinecap="round" strokeLinejoin="round" /></svg>
+    </span>}
     <Proof dark={dark} toggleTheme={toggle} post={active} posts={catalog.all} locale={locale} trigger={trigger} onChange={setActive} />
   </div>;
 }

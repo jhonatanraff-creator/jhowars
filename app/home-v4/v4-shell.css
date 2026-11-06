@@ -3,5 +3,5 @@ body:has([data-v4-shell]) { background: #fbfaf7; }
 html:has([data-v4-shell]) { scrollbar-gutter: stable; }
 html:has([data-v4-shell]) { scroll-padding-bottom:calc(60px + env(safe-area-inset-bottom, 0px)); }
 @media (max-width:700px) {
-  html:has([data-v4-shell]) { scroll-padding-bottom:calc(48px + env(safe-area-inset-bottom, 0px)); }
+  html:has([data-v4-shell]) { scroll-padding-bottom:calc(72px + env(safe-area-inset-bottom, 0px)); }
 }

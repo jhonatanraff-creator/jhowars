@@ -33,9 +33,9 @@ export function useTheme(page: RefObject<HTMLDivElement | null>) {
     setDark(next);
     pulse.current?.cancel();
     if (!reducedMotion()) pulse.current = root.querySelector("[data-theme-ink]")?.animate([
-      { clipPath: "inset(0 0 0 100%)", opacity: .9 },
+      { clipPath: "inset(0 0 0 100%)", opacity: .35 },
       { clipPath: "inset(0)", opacity: 0 },
-    ], { duration: 430, easing: "cubic-bezier(.18,.75,.24,1)" }) ?? null;
+    ], { duration: 360, easing: "cubic-bezier(.18,.75,.24,1)" }) ?? null;
   }
   return { dark, toggle };
 }
@@ -58,7 +58,7 @@ export function usePrintReveal(root: RefObject<HTMLDivElement | null>) {
         furthest.current = Math.max(furthest.current, index);
         io.unobserve(tile);
       }
-    }, { threshold: .14 });
+    }, { rootMargin: "0px 0px 28px", threshold: .02 });
     const observed = new Set<Element>();
     function refresh() {
       for (const item of observed) {

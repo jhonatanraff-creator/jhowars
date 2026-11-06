@@ -2,16 +2,18 @@ import type { HomePost } from "@/lib/portfolio";
 
 export type Slot = [x: number, y: number, w: number, h: number];
 const opening: Slot[] = [
-  [0, 10, 18.5, 48], [25.3, 0, 15, 40], [62.3, 0, 14, 27], [82.3, 14, 14.7, 36],
-  [12, 70, 19, 27], [37, 67, 11, 29], [52.7, 38, 18.5, 53], [78.5, 72, 21.5, 22],
+  [0, 8, 21, 53], [25, 0, 18, 43], [62, 0, 17, 32], [82, 12, 18, 40],
+  [10, 68, 23, 26], [36, 66, 13, 29], [52, 39, 22, 54], [77, 69, 23, 26],
 ];
 const arrangements: Slot[][] = [
-  [[2, 5, 27, 63], [39, 2, 23, 30], [72, 19, 26, 40], [41, 52, 30, 42], [0, 77, 22, 17]],
-  [[1, 24, 56, 51], [66, 3, 17, 37], [79, 55, 19, 39], [0, 2, 24, 15], [40, 1, 17, 16]],
-  [[7, 1, 23, 47], [66, 14, 31, 56], [32, 57, 29, 34], [0, 65, 22, 27], [72, 79, 23, 16]],
-  [[0, 4, 27, 38], [32, 21, 30, 40], [73, 1, 24, 43], [8, 57, 21, 35], [64, 66, 34, 27]],
-  [[12, 1, 43, 61], [69, 22, 29, 51], [27, 72, 31, 24], [0, 72, 22, 23], [79, 81, 20, 14]],
+  [[0, 3, 31, 70], [36, 1, 29, 36], [70, 13, 30, 44], [39, 46, 29, 47]],
+  [[0, 25, 60, 57], [64, 1, 23, 44], [77, 55, 23, 40], [0, 1, 30, 17]],
+  [[4, 0, 27, 50], [64, 11, 35, 58], [34, 52, 28, 41], [1, 63, 26, 31]],
+  [[0, 2, 30, 43], [34, 17, 32, 43], [71, 0, 29, 50], [8, 59, 23, 36]],
+  [[7, 0, 48, 63], [67, 15, 33, 55], [27, 73, 37, 24], [0, 74, 23, 23]],
 ];
+
+export const layoutFor = (index: number) => index < 0 ? -1 : index % arrangements.length;
 
 export function ratioOf(post: HomePost) {
   const id = post.image?.match(/-(\d+)x(\d+)\.[a-z]+(?:$|\?)/i);
@@ -39,7 +41,8 @@ export function curate(posts: HomePost[]) {
 }
 
 export function planPanel(posts: HomePost[], index: number) {
-  const template = index < 0 ? opening : arrangements[index % arrangements.length];
+  const layout = layoutFor(index);
+  const template = layout < 0 ? opening : arrangements[layout];
   const mirror = index >= 0 && Math.floor(index / arrangements.length) % 2 === 1;
   const remaining = [...posts];
   const candidates = template.slice(0, posts.length).map((slot, i) => ({ slot, i }));
@@ -53,24 +56,24 @@ export function planPanel(posts: HomePost[], index: number) {
       };
       return score(p, j) < score(remaining[winner], winner) ? j : winner;
     }, 0);
-    return { post: remaining.splice(best, 1)[0], slot: [mirror ? 100 - x - w : x, y, w, h] as Slot, ink: (Math.max(0, index) + i) % 3 };
+    return { post: remaining.splice(best, 1)[0], slot: [mirror ? 100 - x - w : x, y, w, h] as Slot };
   });
   const ordered = fitted.sort((a, b) => a.slot[1] - b.slot[1] || a.slot[0] - b.slot[0]);
-  let mobileY = index < 0 ? 5 : 4;
+  let mobileY = index < 0 ? 4 : 2;
   let statementTop = 0;
   const tiles = ordered.map((tile, i) => {
     const ratio = ratioOf(tile.post) ?? 1;
     const spread = (i + Math.max(0, index)) % 5;
-    const w = ratio > 1.35 ? [90, 76, 96, 83, 92][spread] : [52, 64, 45, 70, 56][spread];
-    const width = Math.min(w, ratio * 116);
+    const w = ratio > 1.35 ? [96, 84, 100, 90, 96][spread] : [61, 73, 54, 78, 64][spread];
+    const width = Math.min(w, ratio * 124);
     const left = [0, 100 - width, (100 - width) * .25, 100 - width, (100 - width) * .7][spread];
     const top = mobileY;
-    mobileY += width / ratio + [14, 20, 13, 25, 16][spread] + (index < 0 && i === 1 ? 28 : 0);
-    if (i === 1) statementTop = mobileY - 30;
+    mobileY += width / ratio + [15, 16, 15, 17, 16][spread] + (index < 0 && i === 1 ? 23 : 0);
+    if (i === 1) statementTop = mobileY - 24;
     if (index < 0 && ordered.length === 1) { statementTop = mobileY; mobileY += 26; }
     return { ...tile, ratio, mobile: [left, top, width] as const };
   });
-  return { tiles, mobileHeight: mobileY, statementTop };
+  return { tiles, mobileHeight: mobileY, statementTop, layout, mirror };
 }
 
 export function panelSource(posts: ReturnType<typeof curate>, index: number) {
