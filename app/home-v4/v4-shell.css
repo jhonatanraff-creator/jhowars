@@ -1,7 +1,14 @@
 body:has([data-v4-shell]) > .site-header, body:has([data-v4-shell]) > .site-footer { display: none; }
 body:has([data-v4-shell]) { background: #fbfaf7; }
+html:has([data-v4-shell][data-theme="dark"]), body:has([data-v4-shell][data-theme="dark"]) {
+  background:#171716;
+  color-scheme:dark;
+}
 html:has([data-v4-shell]) { scrollbar-gutter: stable; }
-html:has([data-v4-shell]) { scroll-padding-bottom:calc(60px + env(safe-area-inset-bottom, 0px)); }
+html:has([data-v4-shell]) { scroll-padding:calc(56px + env(safe-area-inset-top, 0px)) 0 calc(60px + env(safe-area-inset-bottom, 0px)); }
+@media (max-width:900px) {
+  html:has([data-v4-shell]) { scroll-padding-top:calc(58px + env(safe-area-inset-top, 0px)); }
+}
 @media (max-width:700px) {
   html:has([data-v4-shell]) { scroll-padding-bottom:calc(72px + env(safe-area-inset-bottom, 0px)); }
 }

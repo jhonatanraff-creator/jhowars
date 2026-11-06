@@ -1,4 +1,5 @@
 import type { HomePost } from "@/lib/portfolio";
+import { interventionFor, type EditorialPlacement } from "./editorial-plan";
 
 export type Slot = [x: number, y: number, w: number, h: number];
 const opening: Slot[] = [
@@ -73,7 +74,29 @@ export function planPanel(posts: HomePost[], index: number) {
     if (index < 0 && ordered.length === 1) { statementTop = mobileY; mobileY += 26; }
     return { ...tile, ratio, mobile: [left, top, width] as const };
   });
-  return { tiles, mobileHeight: mobileY, statementTop, layout, mirror };
+  const intervention = interventionFor(index, layout, mirror);
+  let editorial = null;
+  if (intervention) {
+    const minHeight = intervention.graphic && intervention.phrase ? 68 : 49;
+    let mobile: EditorialPlacement | undefined;
+    for (const tile of tiles) {
+      const [left, top, width] = tile.mobile;
+      const right = 100 - left - width;
+      const space = Math.max(left, right);
+      const imageHeight = width / tile.ratio;
+      if (space < 32 || imageHeight < minHeight) continue;
+      const accentWidth = Math.min(39, space - 6);
+      const x = left > right ? (left - accentWidth) / 2 : left + width + (right - accentWidth) / 2;
+      mobile = [x, top + Math.max(3, (imageHeight - minHeight) / 2), accentWidth];
+      break;
+    }
+    if (!mobile) {
+      mobile = [21, mobileY, 58];
+      mobileY += intervention.graphic && intervention.phrase ? 42 : 31;
+    }
+    editorial = { ...intervention, mobile };
+  }
+  return { tiles, mobileHeight: mobileY, statementTop, editorial };
 }
 
 export function panelSource(posts: ReturnType<typeof curate>, index: number) {

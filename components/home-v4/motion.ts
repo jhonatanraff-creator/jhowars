@@ -40,19 +40,67 @@ export function useTheme(page: RefObject<HTMLDivElement | null>) {
   return { dark, toggle };
 }
 
-export function usePrintReveal(root: RefObject<HTMLDivElement | null>) {
+const depthTravel = { far: 44, middle: 90, near: 140 };
+
+export function useGalleryMotion(root: RefObject<HTMLDivElement | null>) {
   const recent = useRef(new Set<string>());
   const furthest = useRef(-1);
   useEffect(() => {
     const node = root.current;
     if (!node || !("IntersectionObserver" in window)) return;
+    const surface = node;
+    const quiet = matchMedia("(prefers-reduced-motion: reduce)");
+    const compact = matchMedia("(max-width: 900px)");
+    let tiles: HTMLElement[] = [];
+    let frame = 0;
+
+    function updateDepth() {
+      frame = 0;
+      if (quiet.matches) return;
+      const viewport = innerHeight;
+      const strength = compact.matches ? .28 : 1;
+      // Measure the static figure, keeping its reveal, hover and previous
+      // displacement out of the scroll calculation.
+      const offsets = tiles.map(tile => {
+        const rect = tile.getBoundingClientRect();
+        const depth = tile.dataset.depth as keyof typeof depthTravel;
+        const travel = Math.min(depthTravel[depth] * Math.min(1.16, viewport / 850), rect.height * .44);
+        const progress = .5 - (rect.top + rect.height / 2) / viewport;
+        return (Math.max(-.5, Math.min(.5, progress)) * travel * strength).toFixed(2) + "px";
+      });
+      tiles.forEach((tile, index) => {
+        if (tile.style.getPropertyValue("--v4-depth") !== offsets[index]) {
+          tile.style.setProperty("--v4-depth", offsets[index]);
+        }
+      });
+    }
+
+    function queueDepth() {
+      if (!quiet.matches && !frame) frame = requestAnimationFrame(updateDepth);
+    }
+
+    function motionPreferenceChanged() {
+      if (quiet.matches) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+        tiles.forEach(tile => tile.style.removeProperty("--v4-depth"));
+      } else {
+        queueDepth();
+      }
+    }
+
     const io = new IntersectionObserver(entries => {
       for (const { target, isIntersecting } of entries) {
-        if (!isIntersecting) continue;
         const tile = target as HTMLElement;
+        if (tile.hasAttribute("data-editorial")) {
+          tile.toggleAttribute("data-in-view", isIntersecting);
+          if (isIntersecting) tile.setAttribute("data-phrase-seen", "");
+          continue;
+        }
+        if (!isIntersecting) continue;
         const index = Number(tile.closest<HTMLElement>("[data-leaf]")?.dataset.leaf);
         const key = `${index}:${tile.dataset.work}`;
-        if (!reducedMotion() && index >= furthest.current - 16 && !recent.current.has(key)) tile.dataset.printed = "true";
+        if (!quiet.matches && index >= furthest.current - 16 && !recent.current.has(key)) tile.dataset.printed = "true";
         recent.current.add(key);
         if (recent.current.size > 128) recent.current.delete(recent.current.values().next().value!);
         furthest.current = Math.max(furthest.current, index);
@@ -62,17 +110,29 @@ export function usePrintReveal(root: RefObject<HTMLDivElement | null>) {
     const observed = new Set<Element>();
     function refresh() {
       for (const item of observed) {
-        if (!node!.contains(item)) { io.unobserve(item); observed.delete(item); }
+        if (!surface.contains(item)) { io.unobserve(item); observed.delete(item); }
       }
-      node!.querySelectorAll("[data-print]").forEach(item => {
+      surface.querySelectorAll("[data-print],[data-editorial]").forEach(item => {
         if (observed.has(item)) return;
         observed.add(item);
         io.observe(item);
       });
+      tiles = Array.from(surface.querySelectorAll<HTMLElement>("[data-depth]"));
+      queueDepth();
     }
     refresh();
     const changes = new MutationObserver(refresh);
-    changes.observe(node, { childList: true, subtree: true });
-    return () => { io.disconnect(); changes.disconnect(); };
+    changes.observe(surface, { childList: true, subtree: true });
+    addEventListener("scroll", queueDepth, { passive: true });
+    addEventListener("resize", queueDepth);
+    quiet.addEventListener("change", motionPreferenceChanged);
+    return () => {
+      io.disconnect();
+      changes.disconnect();
+      removeEventListener("scroll", queueDepth);
+      removeEventListener("resize", queueDepth);
+      quiet.removeEventListener("change", motionPreferenceChanged);
+      cancelAnimationFrame(frame);
+    };
   }, [root]);
 }

@@ -40,7 +40,10 @@ function height(panel: ReturnType<typeof planPanel>, width: number, canvas: numb
   const bottom = Math.max(0, ...panel.tiles.map(({ slot: [, y, w, h], ratio }) =>
     y * canvas / 100 + Math.min(w * width / (100 * ratio), h * canvas / 100)));
   // Leave room for captions at the seam without padding the entire composition.
-  return Math.ceil(bottom + 43);
+  const accentBottom = panel.editorial
+    ? panel.editorial.desktop[1] * canvas / 100 + (panel.editorial.graphic ? 145 : 90)
+    : 0;
+  return Math.ceil(Math.max(bottom + 43, accentBottom));
 }
 
 export function useEditionWindow(catalog: ReturnType<typeof curate>, surface: RefObject<HTMLDivElement | null>, marker: RefObject<HTMLDivElement | null>, measure: RefObject<HTMLDivElement | null>, paused: boolean) {
@@ -61,6 +64,41 @@ export function useEditionWindow(catalog: ReturnType<typeof curate>, surface: Re
     for (const panel of plan.panels) offsets.push(offsets.at(-1)! + height(panel, metrics.width, metrics.canvas, metrics.mobile));
     return { before: plan.before, period: plan.period, offsets };
   }, [metrics, plan]);
+
+  const capturePosition = useCallback(() => {
+    const root = marker.current;
+    const g = geometry;
+    if (!root || !g) return null;
+    const logicalOffset = within(g, current.current.base) - root.getBoundingClientRect().top;
+    const index = locate(g, logicalOffset);
+    return { index, offset: logicalOffset - within(g, index) };
+  }, [geometry, marker]);
+
+  const restorePosition = useCallback((anchor: { index: number; offset: number }) => {
+    const root = marker.current;
+    const g = geometry;
+    if (!root || !g) return false;
+    const index = Math.max(0, anchor.index);
+    const logicalOffset = within(g, index) + anchor.offset;
+    const base = Math.max(0, index - 24);
+    const from = Math.max(base, index - 2);
+    const until = Math.max(base + 4, locate(g, logicalOffset + innerHeight) + 5);
+    const next = {
+      base,
+      start: from,
+      end: until,
+      spacer: within(g, from) - within(g, base),
+      runway: Math.ceil(innerHeight * 5),
+    };
+    current.current = next;
+    flushSync(() => setEdition(next));
+    const markerY = scrollY + root.getBoundingClientRect().top;
+    globalThis.scrollTo({
+      top: markerY + logicalOffset - within(g, base),
+      behavior: "instant",
+    });
+    return true;
+  }, [geometry, marker]);
 
   useEffect(() => {
     const root = surface.current;
@@ -135,6 +173,8 @@ export function useEditionWindow(catalog: ReturnType<typeof curate>, surface: Re
 
   return {
     ...edition,
+    capturePosition,
+    restorePosition,
     toTop,
     heightAt: (i: number) => geometry ? within(geometry, i + 1) - within(geometry, i) : undefined,
   };
