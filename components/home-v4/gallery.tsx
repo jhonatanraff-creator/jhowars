@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { HomePost, SiteSettings } from "@/lib/portfolio";
 import type { Locale } from "@/lib/i18n";
-import { curate, panelSource, planPanel, ratioOf } from "./composition";
+import { curate, planPanel, workName, workYear } from "./composition";
 import { SocialIcon } from "./social-icon";
 import { EditorialAccents } from "./editorial-accents";
 import { useEditionWindow } from "./use-edition-window";
@@ -13,8 +13,8 @@ import { Proof } from "./proof";
 import { useGalleryMotion, useTheme } from "./motion";
 import styles from "./home-v4.module.css";
 
-const nameOf = (post: HomePost) => post.modalTitle || post.artwork?.title || post.project?.title || post.internalName;
-const yearOf = (post: HomePost) => post.year || post.artwork?.year || post.project?.year;
+const nameOf = workName;
+const yearOf = workYear;
 const socials = [["instagram", "Instagram"], ["behance", "Behance"], ["linkedin", "LinkedIn"]] as const;
 
 export function Gallery({ posts, locale, settings }: { posts: HomePost[]; locale: Locale; settings: SiteSettings | null }) {
@@ -31,11 +31,12 @@ export function Gallery({ posts, locale, settings }: { posts: HomePost[]; locale
   const [active, setActive] = useState<HomePost | null>(null);
   const { dark, toggle } = useTheme(page);
   const catalog = useMemo(() => curate(posts), [posts]);
-  const window = useEditionWindow(catalog, surface, marker, measure, active !== null);
-  const first = useMemo(() => planPanel(catalog.first, -1, window.width, window.canvas), [catalog, window.width, window.canvas]);
+  const window = useEditionWindow(catalog, surface, marker, measure, active !== null, en);
+  const { panelAt, start, end } = window;
+  const first = panelAt(-1);
   const restoreEditionPosition = window.restorePosition;
   const captureEditionPosition = window.capturePosition;
-  const panels = useMemo(() => catalog.all.length ? Array.from({ length: window.end - window.start }, (_, i) => { const index = window.start + i; return { index, panel: planPanel(panelSource(catalog, index), index, window.width, window.canvas) }; }) : [], [catalog, window.canvas, window.end, window.start, window.width]);
+  const panels = useMemo(() => catalog.all.length ? Array.from({ length: end - start }, (_, i) => { const index = start + i; return { index, panel: panelAt(index) }; }) : [], [catalog, end, start, panelAt]);
   useGalleryMotion(surface);
 
   const hasWorks = catalog.all.length > 0;
@@ -102,17 +103,15 @@ export function Gallery({ posts, locale, settings }: { posts: HomePost[]; locale
   const contact = email ? `mailto:${email}` : about;
 
   function renderPanel(panel: ReturnType<typeof planPanel>, id: number) {
-    return <div className={styles.leaf} data-opening={id < 0} data-leaf={id} style={{ "--mobile-height": panel.mobileHeight, "--statement-top": window.canvas * .49, "--statement-mobile-top": panel.statementTop, height: id < 0 ? window.openingHeight : window.heightAt(id) } as CSSProperties}>
-      {id < 0 && <h1 className={styles.statement}><span>{en ? "Artist, illustrator, printmaker," : "Artista, ilustrador, impressor,"}</span><span><em>{en ? "questioner" : "questionador"}</em>{en ? ", etc." : ", etc."}</span></h1>}
-      {panel.tiles.map(({ post, slot: [x, y, w, h], mobile: [mx, my, mw] }, order) => {
-        const ratio = ratioOf(post);
-        const depth = h >= 48 ? "near" : h >= 30 ? "middle" : "far";
-        return <figure key={post._id} data-tile data-depth={depth} data-work={post._id} data-print={id >= 0 ? "" : undefined} className={styles.tile} style={{ "--x": x, "--y": y, "--w": w, "--h": h, "--mx": mx, "--my": my, "--mw": mw, "--ratio": ratio ?? 1, "--align": w >= 43 ? .5 : 0, "--reveal-delay": `${Math.min(order, 3) * 42}ms` } as CSSProperties}>
+    return <div className={styles.leaf} data-opening={id < 0} data-leaf={id} style={{ height: panel.height }}>
+      {panel.statement && <h1 className={styles.statement} style={{left:panel.statement.x,top:panel.statement.y,width:panel.statement.width}}><span>{en ? "Artist, illustrator, printmaker," : "Artista, ilustrador, impressor,"}</span><span><em>{en ? "questioner" : "questionador"}</em>, etc.</span></h1>}
+      {panel.tiles.map(({ post, box, ratio, motion, protectedBox, scale }, order) => {
+        return <figure key={post._id} data-tile data-depth={scale} data-work={post._id} data-motion-scroll={motion.scroll} data-motion-mouse={motion.mouse} data-envelope={JSON.stringify(protectedBox)} data-print={id >= 0 ? "" : undefined} className={styles.tile} style={{ left:box.x,top:box.y,width:box.width,"--ratio":ratio,"--reveal-delay": `${Math.min(order, 3) * 42}ms` } as CSSProperties}>
           <div className={styles.parallax} data-parallax-layer>
           <div className={styles.scene} data-scene-drift>
           <button type="button" className={styles.artButton} aria-label={`${en ? "Open" : "Abrir"} ${nameOf(post)}`} onClick={event => { trigger.current = event.currentTarget; setActive(post); }}>
             <span className={styles.frame}>
-              {ratio ? <Image src={post.image!} alt={post.altText || nameOf(post)} fill sizes={`(max-width: 900px) ${Math.ceil(mw * .91)}vw, ${Math.ceil(w * .938)}vw`} priority={id < 0} /> : <Image src={post.image!} alt={post.altText || nameOf(post)} fill sizes="90vw" />}
+              <Image src={post.image!} alt={post.altText || nameOf(post)} fill sizes={Math.ceil(box.width) + "px"} priority={id < 0 && order < 4} />
               <span className={styles.register} aria-hidden="true">+</span>
             </span>
             <span className={styles.caption}><span>{nameOf(post)}</span>{yearOf(post) && <em>{yearOf(post)}</em>}<span className={styles.arrow} aria-hidden="true">↗</span></span>

@@ -1,5 +1,5 @@
 import type { HomePost } from "@/lib/portfolio";
-import { interventionFor, type EditorialPlacement } from "./editorial-plan";
+import { interventionFor } from "./editorial-plan";
 
 export type Slot = [x: number, y: number, w: number, h: number];
 const opening: Slot[] = [
@@ -41,107 +41,135 @@ export function curate(posts: HomePost[]) {
   return { first, rest: usable.filter(p => !selected.has(p._id)), all: usable };
 }
 
-export function planPanel(posts: HomePost[], index: number, compositionWidth = 1200, canvas = 800) {
+
+export type Box = { x: number; y: number; width: number; height: number };
+export type EditorialPlan = NonNullable<ReturnType<typeof interventionFor>> & { box: Box; graphicWidth: number; graphicHeight: number; protectedBox: Box };
+export type TextMeasure = (kind: "caption" | "statement" | "phrase", text: string, width: number, variant?: string) => number;
+export const workName = (post: HomePost) => post.modalTitle || post.artwork?.title || post.project?.title || post.internalName || "";
+export const workYear = (post: HomePost) => post.year || post.artwork?.year || post.project?.year;
+export const statementText = (en: boolean) => en ? "Artist, illustrator, printmaker,\nquestioner, etc." : "Artista, ilustrador, impressor,\nquestionador, etc.";
+
+// Cropping windows include the full extent of the internal animations. The
+// original SVG viewBoxes and geometry remain intact inside these windows.
+export const graphicBounds = {
+  rectangles: [16, 12, 182, 88],
+  star: [60, 47, 59, 60],
+  eye: [31, 28, 107, 119],
+  dots: [36, 38, 114, 84],
+} as const;
+
+export function overlaps(a: Box, b: Box, gap = 0) {
+  return a.x < b.x + b.width + gap && a.x + a.width + gap > b.x &&
+    a.y < b.y + b.height + gap && a.y + a.height + gap > b.y;
+}
+
+function place(width: number, height: number, desiredX: number, desiredY: number, surfaceWidth: number, placed: Box[], gap: number): Box {
+  const right = Math.max(0, surfaceWidth - width);
+  const xs = new Set([0, right, Math.max(0, Math.min(right, desiredX))]);
+  for (let col = 0; col <= 24; col++) xs.add(right * col / 24);
+  const ys = new Set([16, Math.max(16, desiredY)]);
+  for (const box of placed) { ys.add(box.y); ys.add(box.y + box.height + gap); }
+  const currentBottom = Math.max(0, ...placed.map(b => b.y + b.height));
+  let best: Box | undefined;
+  let score = Infinity;
+  for (const x of xs) for (const y of ys) {
+    const box = { x, y, width, height };
+    if (placed.some(other => overlaps(box, other, gap))) continue;
+    const cost = Math.max(currentBottom, y + height) * .76 + y * .18 +
+      Math.abs(x - desiredX) * .36 + Math.abs(y - desiredY) * .16;
+    if (cost < score) { score = cost; best = box; }
+  }
+  // A bottom candidate always exists, including for a very long CMS title.
+  return best ?? { x: Math.min(right, desiredX), y: currentBottom + gap, width, height };
+}
+
+export function planPanel(posts: HomePost[], index: number, compositionWidth = 1200, canvas = 800, measure?: TextMeasure, en = false, compact = compositionWidth <= 820) {
   const layout = layoutFor(index);
   const template = layout < 0 ? opening : arrangements[layout];
   const mirror = index >= 0 && Math.floor(index / arrangements.length) % 2 === 1;
-  const remaining = [...posts];
-  const candidates = template.slice(0, posts.length).map((slot, i) => ({ slot, i }));
-  if (index < 0) candidates.sort((a, b) => [0,6,1,2,3,4,5,7].indexOf(a.i) - [0,6,1,2,3,4,5,7].indexOf(b.i));
-  const fitted = candidates.map(({ slot: [x, y, w, h], i }) => {
-    const target = index < 0 ? [.73,.72,1,.78,1.28,.78,.66,1.95][i] : w / h * 1.65;
-    const best = remaining.reduce((winner, p, j) => {
-      const score = (item: HomePost, rank: number) => {
-        const presence = item.sizeHint === "hero" || item.sizeHint === "large";
-        return Math.abs(Math.log((ratioOf(item) ?? 1) / target)) + rank * .045 - (presence && w * h > 790 ? .26 : 0);
-      };
-      return score(p, j) < score(remaining[winner], winner) ? j : winner;
-    }, 0);
-    return { post: remaining.splice(best, 1)[0], slot: [mirror ? 100 - x - w : x, y, w, h] as Slot };
+  const narrow = compositionWidth < 600;
+  const gap = compact ? 28 : 48;
+  const placed: Box[] = [];
+  const textHeight: TextMeasure = measure ?? ((kind, text, w) => {
+    const font = kind === "caption" ? 15 : kind === "statement" ? 24 : 23;
+    return text.split("\n").reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length * font * .56 / w)) * font * 1.25, kind === "caption" ? 9 : 0);
   });
-  const ordered = fitted.sort((a, b) => a.slot[1] - b.slot[1] || a.slot[0] - b.slot[0]);
+  let statement: Box | null = null;
+  if (index < 0 && !compact) {
+    const w = compositionWidth * .27;
+    statement = { x: compositionWidth * .345, y: Math.min(canvas * .29, 230), width: w, height: textHeight("statement", statementText(en), w) };
+    placed.push({ x: statement.x - 12, y: statement.y - 12, width: w + 24, height: statement.height + 24 });
+  }
   const intervention = interventionFor(index, layout, mirror);
-  // Resolve desktop placement against each real image and its caption. The
-  // source templates provide the art direction; this pass provides collision
-  // safety without turning the composition into a repeated card grid.
-  const protectedAreas = index < 0 ? [{ x: compositionWidth * .245, right: compositionWidth * .545, top: canvas * .49, bottom: canvas * .49 + 92 }] : [];
-  if (intervention) {
-    const [accentX, accentY, accentWidth] = intervention.desktop;
-    const accentTop = accentY * canvas / 100;
-    const accentHeight = intervention.graphic ? (intervention.phrase ? 250 : 350) : 110;
-    protectedAreas.push({ x: accentX * compositionWidth / 100, right: (accentX + accentWidth) * compositionWidth / 100, top: accentTop, bottom: accentTop + accentHeight });
-  }
-  const placed: Array<{ x: number; right: number; top: number; bottom: number }> = [...protectedAreas];
-  const safeTiles = ordered.map((tile) => {
-    const [sourceX, y, sourceW] = tile.slot;
-    const w = Math.min(sourceW * 1.04, 100);
-    const x = Math.min(sourceX, 100 - w);
-    const left = x * compositionWidth / 100;
-    const right = left + w * compositionWidth / 100;
-    const imageHeight = w * compositionWidth / (100 * (ratioOf(tile.post) ?? 1));
-    const captionLines = Math.ceil((nameOfForLayout(tile.post).length || 1) / Math.max(12, Math.floor((right - left) / 7))) + (tile.post.year || tile.post.artwork?.year || tile.post.project?.year ? 1 : 0);
-    const blockHeight = imageHeight + 9 + captionLines * 18;
-    let top = y * canvas / 100;
-    let changed = true;
-    while (changed) {
-      changed = false;
-      for (const block of placed) {
-        const horizontal = left < block.right + 48 && right > block.x - 48;
-        const vertical = top < block.bottom + 48 && top + blockHeight > block.top - 48;
-        if (horizontal && vertical) {
-          top = block.bottom + 48;
-          changed = true;
-        }
-      }
-    }
-    placed.push({ x: left, right, top, bottom: top + blockHeight });
-    return { ...tile, slot: [x, top, w, tile.slot[3]] as Slot };
-  });
-  let mobileY = index < 0 ? 4 : 2;
-  let statementTop = 0;
-  const tiles = ordered.map((tile, i) => {
-    const ratio = ratioOf(tile.post) ?? 1;
-    const spread = (i + Math.max(0, index)) % 5;
-    const w = ratio > 1.35 ? [96, 84, 100, 90, 96][spread] : [61, 73, 54, 78, 64][spread];
-    const width = Math.min(w, ratio * 124);
-    const left = [0, 100 - width, (100 - width) * .25, 100 - width, (100 - width) * .7][spread];
-    const top = mobileY;
-    mobileY += width / ratio + [15, 16, 15, 17, 16][spread] + (index < 0 && i === 1 ? 23 : 0);
-    if (i === 1) statementTop = mobileY - 24;
-    if (index < 0 && ordered.length === 1) { statementTop = mobileY; mobileY += 26; }
-    return { ...tile, ratio, mobile: [left, top, width] as const };
-  });
-  let editorial = null;
-  if (intervention) {
-    const minHeight = intervention.graphic && intervention.phrase ? 68 : 49;
-    let mobile: EditorialPlacement | undefined;
-    for (const tile of tiles) {
-      const [left, top, width] = tile.mobile;
-      const right = 100 - left - width;
-      const space = Math.max(left, right);
-      const imageHeight = width / tile.ratio;
-      if (space < 32 || imageHeight < minHeight) continue;
-      const accentWidth = Math.min(39, space - 6);
-      const x = left > right ? (left - accentWidth) / 2 : left + width + (right - accentWidth) / 2;
-      mobile = [x, top + Math.max(3, (imageHeight - minHeight) / 2), accentWidth];
-      break;
-    }
-    if (!mobile) {
-      mobile = [21, mobileY, 58];
-      mobileY += intervention.graphic && intervention.phrase ? 42 : 31;
-    }
-    editorial = { ...intervention, desktop: [intervention.desktop[0], intervention.desktop[1] * canvas / 100, intervention.desktop[2]], mobile };
-  }
-  const composedTiles = safeTiles.map((tile, i) => ({
-    ...tile,
-    ratio: tiles[i].ratio,
-    mobile: tiles[i].mobile,
-  }));
-  return { tiles: composedTiles, mobileHeight: mobileY, statementTop, editorial };
-}
+  let editorial: EditorialPlan | null = null;
+  const remaining = [...posts];
+  const tiles: Array<{ post: HomePost; ratio: number; box: Box; protectedBox: Box; motion: { scroll: number; mouse: number }; scale: string }> = [];
 
-function nameOfForLayout(post: HomePost) {
-  return post.modalTitle || post.artwork?.title || post.project?.title || post.internalName || "";
+  function addEditorial() {
+    if (!intervention) return;
+    const width = compact ? Math.min(compositionWidth * .72, 320) : Math.min(compositionWidth * .27, 360);
+    const nominal = { rectangles: 330, star: 245, eye: 235, dots: 300 };
+    const graphicWidth = intervention.graphic ? Math.min(width, nominal[intervention.graphic] * (compact ? .75 : 1)) : 0;
+    const bounds = intervention.graphic ? graphicBounds[intervention.graphic] : null;
+    const graphicHeight = bounds ? graphicWidth * bounds[3] / bounds[2] : 0;
+    const phrase = intervention.phrase;
+    const phraseHeight = phrase ? textHeight("phrase", en ? phrase.en : phrase.text, width, phrase.scale + ":" + phrase.style) : 0;
+    const height = graphicHeight + phraseHeight + (graphicHeight && phraseHeight ? 22 : 0);
+    const x = (mirror ? .12 : .72) * Math.max(0, compositionWidth - width);
+    const desiredY = compact ? Math.max(16, ...placed.map(b => b.y + b.height)) + gap : canvas * .23;
+    const protectedBox = place(width + 12, height + 24, x, desiredY, compositionWidth, placed, gap);
+    placed.push(protectedBox);
+    editorial = { ...intervention, box: { x: protectedBox.x + 6, y: protectedBox.y + 12, width, height }, graphicWidth, graphicHeight, protectedBox };
+  }
+
+  for (let i = 0; i < Math.min(posts.length, template.length); i++) {
+    if (i === 2) addEditorial();
+    if (index < 0 && compact && i === 2) {
+      const w = Math.min(compositionWidth * .82, 500);
+      const h = textHeight("statement", statementText(en), w);
+      const box = place(w, h + 16, (compositionWidth - w) * .6, Math.max(...placed.map(b => b.y + b.height)) + gap, compositionWidth, placed, gap);
+      statement = { ...box, y: box.y + 8, height: h };
+      placed.push(box);
+    }
+    const source = template[i];
+    const target = index < 0 ? [.73, .72, 1, .78, 1.28, .78, .66, 1.95][i] : source[2] / source[3] * 1.65;
+    const best = remaining.reduce((winner, post, j) => Math.abs(Math.log((ratioOf(post) ?? 1) / target)) + j * .04 <
+      Math.abs(Math.log((ratioOf(remaining[winner]) ?? 1) / target)) + winner * .04 ? j : winner, 0);
+    const post = remaining.splice(best, 1)[0];
+    const ratio = ratioOf(post) ?? 1;
+    const featured = index >= 0 && index % 10 === 4 && i === 0;
+    const scale = featured ? "protagonist" : i % 4 === 3 ? "small" : i % 2 === 0 ? "principal" : "complementary";
+    const fraction = index < 0 ? [.225, .185, .205, .185, .24, .19, .235, .24][i] :
+      featured ? .43 : scale === "principal" ? .295 : scale === "complementary" ? .245 : .205;
+    const mobileFraction = narrow ? (ratio > 1.3 ? [.94,.86,.98][i % 3] : [.73,.86,.68,.8][(i + Math.max(index,0)) % 4]) : [.43,.38,.47,.4][i % 4];
+    const maxHeight = compact ? (narrow ? Math.max(260, Math.min(canvas * .88, compositionWidth * 1.35)) : canvas * .68) : canvas * (featured ? .86 : index < 0 ? .57 : .7);
+    const areaLimit = compositionWidth * canvas * (compact ? (narrow ? .55 : .24) : featured ? .27 : index < 0 ? .13 : .18);
+    const width = Math.max(1, Math.min(compositionWidth - 32, compositionWidth * (compact ? mobileFraction : fraction), maxHeight * ratio, Math.sqrt(areaLimit * ratio)));
+    const imageHeight = width / ratio;
+    const caption = workName(post) + (workYear(post) ? "\n" + workYear(post) : "");
+    const captionHeight = textHeight("caption", caption, width);
+    const depth = (i + Math.max(0,index)) % 3;
+    const scroll = (compact ? [18,28,40] : [30,50,74])[depth];
+    const mouse = compact ? 0 : [5,8,12][depth];
+    // Includes scroll's +/- half range, inverse pointer, reveal, hover and
+    // the caption's 3px focus emphasis. The full image and caption move together.
+    const dx = mouse + 4;
+    const dy = scroll / 2 + mouse + 18;
+    const desiredX = (mirror ? 100 - source[0] - source[2] : source[0]) / 100 * compositionWidth;
+    const desiredY = narrow ? Math.max(16, ...placed.map(b => b.y + b.height)) + (placed.length ? gap : 0) : source[1] / 100 * canvas * .65;
+    const protectedBox = place(width + dx * 2, imageHeight + captionHeight + dy * 2, desiredX - dx, desiredY, compositionWidth, placed, gap);
+    placed.push(protectedBox);
+    tiles.push({ post, ratio, scale, motion: { scroll, mouse }, protectedBox,
+      box: { x: protectedBox.x + dx, y: protectedBox.y + dy, width, height: imageHeight + captionHeight } });
+  }
+  if (intervention && !editorial) addEditorial();
+  if (index < 0 && compact && !statement) {
+    const w = compositionWidth * .82;
+    const h = textHeight("statement", statementText(en), w);
+    statement = place(w, h, 0, Math.max(16, ...placed.map(b => b.y + b.height)) + gap, compositionWidth, placed, gap);
+    placed.push(statement);
+  }
+  return { tiles, statement, editorial: editorial as EditorialPlan | null, height: Math.ceil(Math.max(0, ...placed.map(b => b.y + b.height)) + (compact ? 24 : 32)) };
 }
 
 export function panelSource(posts: ReturnType<typeof curate>, index: number) {

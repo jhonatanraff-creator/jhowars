@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { flushSync } from "react-dom";
-import { type curate, panelSource, planPanel } from "./composition";
+import { type curate, type TextMeasure, panelSource, planPanel } from "./composition";
+import styles from "./home-v4.module.css";
 
 const initial = { base: 0, start: 0, end: 4, spacer: 0, runway: 0 };
 const gcd = (a: number, b: number): number => b ? gcd(b, a % b) : a;
@@ -35,41 +36,38 @@ function locate(g: Geometry, offset: number) {
   return cycles * g.period + lower;
 }
 
-function height(panel: ReturnType<typeof planPanel>, width: number, canvas: number, mobile: boolean) {
-  if (mobile) return Math.round(panel.mobileHeight * width / 100);
-  const bottom = Math.max(0, ...panel.tiles.map(({ slot: [, y, w], ratio, post }) => {
-    const imageHeight = w * width / (100 * ratio);
-    const title = post.modalTitle || post.artwork?.title || post.project?.title || post.internalName || "";
-    const captionLines = Math.ceil(title.length / Math.max(12, Math.floor((w * width / 100) / 7))) + (post.year || post.artwork?.year || post.project?.year ? 1 : 0);
-    return y + imageHeight + 9 + captionLines * 18;
-  }));
-  // Leave room for captions at the seam without padding the entire composition.
-  const accentBottom = panel.editorial
-    ? panel.editorial.desktop[1] + (panel.editorial.graphic ? (panel.editorial.phrase ? 250 : 350) : 110)
-    : 0;
-  return Math.ceil(Math.max(bottom + 43, accentBottom));
-}
-
-export function useEditionWindow(catalog: ReturnType<typeof curate>, surface: RefObject<HTMLDivElement | null>, marker: RefObject<HTMLDivElement | null>, measure: RefObject<HTMLDivElement | null>, paused: boolean) {
+export function useEditionWindow(catalog: ReturnType<typeof curate>, surface: RefObject<HTMLDivElement | null>, marker: RefObject<HTMLDivElement | null>, measure: RefObject<HTMLDivElement | null>, paused: boolean, en = false) {
   const [edition, setEdition] = useState(initial);
   const current = useRef(initial);
-  const [metrics, setMetrics] = useState<{ width: number; canvas: number; mobile: boolean } | null>(null);
+  const [metrics, setMetrics] = useState<{ width: number; canvas: number; mobile: boolean; panels: ReturnType<typeof planPanel>[]; opening: ReturnType<typeof planPanel> } | null>(null);
   const lastMetrics = useRef(metrics);
+  const repetition = useMemo(() => {
+    const before = Math.ceil(catalog.rest.length / 4);
+    const pass = 3 * Math.ceil(catalog.all.length / 4);
+    return { before, period: pass ? 10 * pass / gcd(10, pass) : 0 };
+  }, [catalog]);
+  const panelAt = useCallback((i: number) => {
+    if (!metrics) return planPanel(panelSource(catalog, i), i, 1200, 800, undefined, en, false);
+    if (i < 0) return metrics.opening;
+    const canonical = i < repetition.before ? i : repetition.before + (i - repetition.before) % repetition.period;
+    const panel = metrics.panels[canonical];
+    return panel.editorial ? { ...panel, editorial: { ...panel.editorial, id: i + ":" + (panel.editorial.phrase?.id ?? panel.editorial.graphic) } } : panel;
+  }, [catalog, en, metrics, repetition]);
   const plan = useMemo(() => {
     const before = Math.ceil(catalog.rest.length / 4);
     const pass = 3 * Math.ceil(catalog.all.length / 4);
     const period = pass ? 10 * pass / gcd(10, pass) : 0;
-    const width = metrics?.width ?? 1200;
-    const canvas = metrics?.canvas ?? 800;
-    return { before, period, panels: Array.from({ length: before + period }, (_, i) => planPanel(panelSource(catalog, i), i, width, canvas)) };
-  }, [catalog, metrics]);
+    return { before, period, panels: Array.from({ length: before + period }, (_, i) => panelAt(i)) };
+  }, [catalog, panelAt]);
 
   const geometry = useMemo(() => {
     if (!metrics) return null;
     const offsets = [0];
-    for (const panel of plan.panels) offsets.push(offsets.at(-1)! + height(panel, metrics.width, metrics.canvas, metrics.mobile));
+    for (const panel of plan.panels) offsets.push(offsets.at(-1)! + panel.height);
     return { before: plan.before, period: plan.period, offsets };
   }, [metrics, plan]);
+  const previousGeometry = useRef<Geometry | null>(null);
+  const resizeAnchor = useRef<{index:number; fraction:number} | null>(null);
 
   const capturePosition = useCallback(() => {
     const root = marker.current;
@@ -107,26 +105,71 @@ export function useEditionWindow(catalog: ReturnType<typeof curate>, surface: Re
   }, [geometry, marker]);
 
   useEffect(() => {
+    previousGeometry.current = geometry;
+    const anchor = resizeAnchor.current;
+    if (!geometry || !anchor) return;
+    resizeAnchor.current = null;
+    const offset = anchor.fraction * (within(geometry, anchor.index + 1) - within(geometry, anchor.index));
+    const frame = requestAnimationFrame(() => restorePosition({index:anchor.index,offset}));
+    return () => cancelAnimationFrame(frame);
+  }, [geometry, restorePosition]);
+
+  useEffect(() => {
     const root = surface.current;
     const probe = measure.current;
     if (!root || !probe) return;
     const breakpoint = matchMedia("(max-width: 900px)");
-    function read() {
+    let alive = true;
+    function read(force = false) {
       const width = root!.getBoundingClientRect().width;
       const canvas = probe!.getBoundingClientRect().height;
       const mobile = breakpoint.matches;
       const old = lastMetrics.current;
-      if (width <= 0 || canvas <= 0 || (old?.width === width && old.canvas === canvas && old.mobile === mobile)) return;
-      lastMetrics.current = { width, canvas, mobile };
+      if (!alive || width <= 0 || canvas <= 0 || (!force && old?.width === width && old.canvas === canvas && old.mobile === mobile)) return;
+      const oldGeometry = previousGeometry.current;
+      if (oldGeometry && marker.current && scrollY > 100) {
+        const logical = within(oldGeometry, current.current.base) - marker.current.getBoundingClientRect().top;
+        if (logical > 0) {
+          const index = locate(oldGeometry, logical);
+          const length = within(oldGeometry,index+1) - within(oldGeometry,index);
+          resizeAnchor.current = {index,fraction:(logical-within(oldGeometry,index))/Math.max(1,length)};
+        }
+      }
+      const cache = new Map<string, number>();
+      const text: TextMeasure = (kind, value, w, variant) => {
+        const key = [kind, value, w.toFixed(2), variant].join("|");
+        const saved = cache.get(key);
+        if (saved !== undefined) return saved;
+        const item = document.createElement(kind === "phrase" ? "p" : "div");
+        item.className = kind === "caption" ? styles.caption : kind === "statement" ? styles.statement : styles.editorialPhrase;
+        Object.assign(item.style, { width: w + "px", maxWidth: "none", position: "absolute", top: "0", left: "0", margin: "0" });
+        if (variant) { const [scale, style] = variant.split(":"); item.dataset.scale = scale; item.dataset.style = style; }
+        for (const [i, line] of value.split("\n").entries()) {
+          const part = document.createElement(kind === "caption" && i > 0 ? "em" : "span");
+          part.style.display = "block"; part.textContent = line; item.append(part);
+        }
+        probe!.append(item);
+        const height = Math.ceil(item.getBoundingClientRect().height);
+        item.remove();
+        cache.set(key, height);
+        return height;
+      };
+      // DOM measurement stays in this effect. Render and scroll only consume
+      // the cached plans; no per-frame layout measurement or DOM writes.
+      const panels = Array.from({length:repetition.before + repetition.period}, (_, i) => planPanel(panelSource(catalog, i), i, width, canvas, text, en, mobile));
+      const opening = planPanel(catalog.first, -1, width, canvas, text, en, mobile);
+      lastMetrics.current = { width, canvas, mobile, panels, opening };
       setMetrics(lastMetrics.current);
     }
-    const observer = new ResizeObserver(read);
+    const observer = new ResizeObserver(() => read());
     observer.observe(root);
     observer.observe(probe);
-    breakpoint.addEventListener("change", read);
+    const changed = () => read(true);
+    breakpoint.addEventListener("change", changed);
     read();
-    return () => { observer.disconnect(); breakpoint.removeEventListener("change", read); };
-  }, [measure, surface]);
+    void document.fonts.ready.then(() => read(true));
+    return () => { alive = false; observer.disconnect(); breakpoint.removeEventListener("change", changed); };
+  }, [catalog, en, marker, measure, repetition, surface]);
 
   useEffect(() => {
     const start = marker.current;
@@ -183,8 +226,6 @@ export function useEditionWindow(catalog: ReturnType<typeof curate>, surface: Re
     restorePosition,
     toTop,
     heightAt: (i: number) => geometry ? within(geometry, i + 1) - within(geometry, i) : undefined,
-    width: metrics?.width ?? 1200,
-    canvas: metrics?.canvas ?? 800,
-    openingHeight: metrics ? height(planPanel(catalog.first, -1, metrics.width, metrics.canvas), metrics.width, metrics.canvas, metrics.mobile) : undefined,
+    panelAt,
   };
 }

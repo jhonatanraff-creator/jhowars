@@ -40,8 +40,6 @@ export function useTheme(page: RefObject<HTMLDivElement | null>) {
   return { dark, toggle };
 }
 
-const depthTravel = { far: 44, middle: 90, near: 140 };
-
 export function useGalleryMotion(root: RefObject<HTMLDivElement | null>) {
   const recent = useRef(new Set<string>());
   const furthest = useRef(-1);
@@ -61,15 +59,13 @@ export function useGalleryMotion(root: RefObject<HTMLDivElement | null>) {
       frame = 0;
       if (quiet.matches) return;
       const viewport = innerHeight;
-      const strength = compact.matches ? .28 : 1;
       // Measure the static figure, keeping its reveal, hover and previous
       // displacement out of the scroll calculation.
       const offsets = tiles.map(tile => {
         const rect = tile.getBoundingClientRect();
-        const depth = tile.dataset.depth as keyof typeof depthTravel;
-        const travel = Math.min(depthTravel[depth] * Math.min(1.16, viewport / 850), rect.height * .44);
+        const travel = Number(tile.dataset.motionScroll) || 0;
         const progress = .5 - (rect.top + rect.height / 2) / viewport;
-        return (Math.max(-.5, Math.min(.5, progress)) * travel * strength).toFixed(2) + "px";
+        return (Math.max(-.5, Math.min(.5, progress)) * travel).toFixed(2) + "px";
       });
       tiles.forEach((tile, index) => {
         if (tile.style.getPropertyValue("--v4-depth") !== offsets[index]) {
@@ -88,8 +84,7 @@ export function useGalleryMotion(root: RefObject<HTMLDivElement | null>) {
       const x = (lastPointer.x / Math.max(1, innerWidth) - .5) * 2;
       const y = (lastPointer.y / Math.max(1, innerHeight) - .5) * 2;
       for (const scene of scenes) {
-        const depth = scene.closest<HTMLElement>("[data-depth]")?.dataset.depth;
-        const travel = depth === "near" ? 15 : depth === "middle" ? 10 : 6;
+        const travel = Number(scene.closest<HTMLElement>("[data-depth]")?.dataset.motionMouse) || 0;
         scene.style.setProperty("--v4-mouse-x", `${(-x * travel).toFixed(1)}px`);
         scene.style.setProperty("--v4-mouse-y", `${(-y * travel).toFixed(1)}px`);
       }
@@ -102,6 +97,8 @@ export function useGalleryMotion(root: RefObject<HTMLDivElement | null>) {
       if (!pointerFrame) pointerFrame = requestAnimationFrame(updateMouseDrift);
     }
     function clearMouseDrift() {
+      cancelAnimationFrame(pointerFrame);
+      pointerFrame = 0;
       for (const scene of scenes) {
         scene.style.setProperty("--v4-mouse-x", "0px");
         scene.style.setProperty("--v4-mouse-y", "0px");
@@ -164,6 +161,8 @@ export function useGalleryMotion(root: RefObject<HTMLDivElement | null>) {
     surface.addEventListener("pointermove", onPointerMove, { passive: true });
     surface.addEventListener("pointerleave", clearMouseDrift);
     quiet.addEventListener("change", motionPreferenceChanged);
+    compact.addEventListener("change", motionPreferenceChanged);
+    pointer.addEventListener("change", motionPreferenceChanged);
     return () => {
       io.disconnect();
       changes.disconnect();
@@ -172,6 +171,8 @@ export function useGalleryMotion(root: RefObject<HTMLDivElement | null>) {
       surface.removeEventListener("pointermove", onPointerMove);
       surface.removeEventListener("pointerleave", clearMouseDrift);
       quiet.removeEventListener("change", motionPreferenceChanged);
+      compact.removeEventListener("change", motionPreferenceChanged);
+      pointer.removeEventListener("change", motionPreferenceChanged);
       cancelAnimationFrame(frame);
       cancelAnimationFrame(pointerFrame);
     };
