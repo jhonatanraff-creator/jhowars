@@ -37,11 +37,15 @@ function locate(g: Geometry, offset: number) {
 
 function height(panel: ReturnType<typeof planPanel>, width: number, canvas: number, mobile: boolean) {
   if (mobile) return Math.round(panel.mobileHeight * width / 100);
-  const bottom = Math.max(0, ...panel.tiles.map(({ slot: [, y, w, h], ratio }) =>
-    y * canvas / 100 + Math.min(w * width / (100 * ratio), h * canvas / 100)));
+  const bottom = Math.max(0, ...panel.tiles.map(({ slot: [, y, w], ratio, post }) => {
+    const imageHeight = w * width / (100 * ratio);
+    const title = post.modalTitle || post.artwork?.title || post.project?.title || post.internalName || "";
+    const captionLines = Math.ceil(title.length / Math.max(12, Math.floor((w * width / 100) / 7))) + (post.year || post.artwork?.year || post.project?.year ? 1 : 0);
+    return y + imageHeight + 9 + captionLines * 18;
+  }));
   // Leave room for captions at the seam without padding the entire composition.
   const accentBottom = panel.editorial
-    ? panel.editorial.desktop[1] * canvas / 100 + (panel.editorial.graphic ? 145 : 90)
+    ? panel.editorial.desktop[1] + (panel.editorial.graphic ? (panel.editorial.phrase ? 250 : 350) : 110)
     : 0;
   return Math.ceil(Math.max(bottom + 43, accentBottom));
 }
@@ -55,8 +59,10 @@ export function useEditionWindow(catalog: ReturnType<typeof curate>, surface: Re
     const before = Math.ceil(catalog.rest.length / 4);
     const pass = 3 * Math.ceil(catalog.all.length / 4);
     const period = pass ? 10 * pass / gcd(10, pass) : 0;
-    return { before, period, panels: Array.from({ length: before + period }, (_, i) => planPanel(panelSource(catalog, i), i)) };
-  }, [catalog]);
+    const width = metrics?.width ?? 1200;
+    const canvas = metrics?.canvas ?? 800;
+    return { before, period, panels: Array.from({ length: before + period }, (_, i) => planPanel(panelSource(catalog, i), i, width, canvas)) };
+  }, [catalog, metrics]);
 
   const geometry = useMemo(() => {
     if (!metrics) return null;
@@ -177,5 +183,8 @@ export function useEditionWindow(catalog: ReturnType<typeof curate>, surface: Re
     restorePosition,
     toTop,
     heightAt: (i: number) => geometry ? within(geometry, i + 1) - within(geometry, i) : undefined,
+    width: metrics?.width ?? 1200,
+    canvas: metrics?.canvas ?? 800,
+    openingHeight: metrics ? height(planPanel(catalog.first, -1, metrics.width, metrics.canvas), metrics.width, metrics.canvas, metrics.mobile) : undefined,
   };
 }

@@ -93,12 +93,12 @@
 .leaf { --leaf:var(--continuation); position:relative; height:var(--leaf); isolation:isolate; }
 .leaf[data-opening="true"] { --leaf:var(--opening); }
 .tile {
-  --tile-width:min(calc(var(--w) * 1%), calc(var(--h) * var(--leaf) * var(--ratio) / 100));
-  position:absolute; top:calc(var(--y) * var(--leaf) / 100); margin:0;
-  left:calc(var(--x) * 1% + (var(--w) * 1% - var(--tile-width)) * var(--align,0));
-  width:var(--tile-width);
+  position:absolute; top:calc(var(--y) * 1px); margin:0;
+  left:calc(var(--x) * 1%);
+  width:calc(var(--w) * 1%);
 }
 .parallax { translate:0 var(--v4-depth,0px); }
+.scene { width:100%; translate:var(--v4-mouse-x,0px) var(--v4-mouse-y,0px); transition:translate .24s var(--ease); }
 .page .artButton { display:block; width:100%; text-align:left; translate:0 var(--lift,0px); transition:translate .42s var(--ease); }
 .frame { display:block; position:relative; aspect-ratio:var(--ratio); }
 .frame img { object-fit:contain; }
@@ -117,16 +117,16 @@
 .tile[data-printed="true"] .frame { animation:art-arrive .65s var(--reveal-delay,0ms) var(--ease) both; }
 .tile[data-printed="true"] .caption { animation:text-arrive .48s calc(var(--reveal-delay,0ms) + 90ms) var(--ease) both; }
 @keyframes art-arrive {
-  from { opacity:.55; transform:translateY(10px); clip-path:inset(0 0 4%); }
-  to { opacity:1; transform:translateY(0); clip-path:inset(0); }
+  from { opacity:.55; transform:translateY(10px) scale(.992); filter:blur(2px); clip-path:inset(0 0 4%); }
+  to { opacity:1; transform:translateY(0) scale(1); filter:blur(0); clip-path:inset(0); }
 }
 @keyframes text-arrive {
   from { opacity:.25; transform:translateY(5px); }
   to { opacity:1; transform:translateY(0); }
 }
 .statement {
-  position:absolute; left:24.5%; top:49%; margin:0; width:26%;
-  text-align:center; font:400 clamp(18px,2.03vw,40px)/1.08 var(--v4-type); letter-spacing:-.042em;
+  position:absolute; left:24.5%; top:calc(var(--statement-top) * 1px); margin:0; width:30%;
+  text-align:center; font:400 clamp(18px,1.65vw,33px)/1.12 var(--v4-type); letter-spacing:-.035em;
 }
 .statement span { display:block; animation:text-arrive .7s .12s var(--ease) both; }
 .statement span + span { animation-delay:.23s; }
@@ -135,18 +135,19 @@
   --graphic-paper:#f9f8f7;
   --pale-edge:#8c8378;
   display:flex; align-items:center; gap:clamp(6px,1vw,14px);
-  position:absolute; left:var(--accent-x); top:calc(var(--accent-y) * var(--leaf) / 100); width:var(--accent-width);
+  position:absolute; left:var(--accent-x); top:calc(var(--accent-y) * 1px); width:var(--accent-width);
   color:var(--ink);
 }
 .page[data-theme="dark"] .accent { --graphic-ink:#f9f8f7; --graphic-paper:#232220; --pale-edge:transparent; }
-.accent svg { display:block; flex:none; width:260px; height:auto; }
-.accent[data-paired="true"] svg { width:min(58%,310px); }
-.accent[data-paired="true"] [data-graphic="eye"] { width:min(48%,245px); }
+.accent svg { display:block; flex:none; width:min(100%,330px); height:auto; }
+.accent[data-paired="true"] svg { width:min(62%,360px); }
+.accent[data-paired="true"] [data-graphic="eye"] { width:min(54%,320px); }
 .accent[data-graphic="rectangles"] { width:min(var(--accent-width),700px); }
-.accent[data-graphic="rectangles"][data-paired="true"] svg { width:min(78%,420px); }
-.accent[data-graphic="star"] svg { width:270px; }
-.accent[data-graphic="eye"] svg { width:245px; }
-.accent[data-graphic="dots"] svg { width:290px; }
+.accent[data-graphic="rectangles"] svg { width:min(100%,470px); }
+.accent[data-graphic="rectangles"][data-paired="true"] svg { width:min(82%,470px); }
+.accent[data-graphic="star"] svg { width:min(100%,360px); }
+.accent[data-graphic="eye"] svg { width:min(100%,330px); }
+.accent[data-graphic="dots"] svg { width:min(100%,390px); }
 .accent [data-pale] { stroke:var(--pale-edge); stroke-width:.65; paint-order:stroke fill; }
 .editorialPhrase {
   flex:1; min-width:0; max-width:28ch; margin:0; overflow-wrap:anywhere;
@@ -252,20 +253,20 @@
   .surface { width:91%; }
   .leaf,.leaf[data-opening="true"] { height:calc(var(--mobile-height) * 1cqw); }
   .tile { left:calc(var(--mx) * 1%); top:calc(var(--my) * 1cqw); width:calc(var(--mw) * 1%); }
-  .statement { left:13%; top:calc(var(--statement-top) * 1cqw); width:74%; font-size:clamp(19px,4.5vw,34px); }
+  .statement { left:13%; top:calc(var(--statement-mobile-top) * 1cqw); width:74%; font-size:clamp(19px,4.1vw,31px); }
   .tile:hover,.tile:focus-within { --lift:0px; }
   .tile[data-printed="true"] .frame { animation-duration:.54s; }
   .accent {
     flex-direction:column; gap:3px;
     left:var(--accent-mobile-x); top:calc(var(--accent-mobile-y) * 1cqw); width:var(--accent-mobile-width);
   }
-  .accent svg { width:min(88%,38cqw,176px); }
-  .accent[data-paired="true"] svg { width:min(78%,34cqw,148px); }
+  .accent svg { width:min(92%,42cqw,210px); }
+  .accent[data-paired="true"] svg { width:min(82%,38cqw,180px); }
   .accent[data-graphic="eye"][data-paired="true"] { gap:0; }
-  .accent[data-graphic="eye"][data-paired="true"] svg { width:min(78%,34cqw,128px); }
-  .accent[data-graphic="rectangles"][data-paired="true"] svg { width:min(88%,42cqw,185px); }
-  .accent[data-graphic="star"] svg { width:min(88%,42cqw,190px); }
-  .accent[data-graphic="dots"] svg { width:min(88%,46cqw,205px); }
+  .accent[data-graphic="eye"][data-paired="true"] svg { width:min(82%,36cqw,155px); }
+  .accent[data-graphic="rectangles"][data-paired="true"] svg { width:min(92%,46cqw,220px); }
+  .accent[data-graphic="star"] svg { width:min(92%,46cqw,220px); }
+  .accent[data-graphic="dots"] svg { width:min(92%,48cqw,230px); }
   .statement { letter-spacing:-.035em; }
   .editorialPhrase { align-self:stretch; font-size:clamp(15px,3vw,22px); }
   .editorialPhrase[data-scale="small"] { font-size:clamp(13px,2.75vw,18px); }
@@ -295,7 +296,7 @@
 }
 @media (prefers-reduced-motion:reduce) {
   .page,.page *,.dialog,.dialog *,.dialog::backdrop { animation:none!important; transition:none!important; scroll-behavior:auto!important; }
-  .parallax,.page .artButton { translate:none!important; }
+  .parallax,.scene,.page .artButton { translate:none!important; }
 }
 .measure { position:absolute; width:0; height:var(--continuation); visibility:hidden; pointer-events:none; }
 .spacer { pointer-events:none; }

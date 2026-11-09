@@ -51,8 +51,11 @@ export function useGalleryMotion(root: RefObject<HTMLDivElement | null>) {
     const surface = node;
     const quiet = matchMedia("(prefers-reduced-motion: reduce)");
     const compact = matchMedia("(max-width: 900px)");
+    const pointer = matchMedia("(hover:hover) and (pointer:fine)");
     let tiles: HTMLElement[] = [];
+    let scenes: HTMLElement[] = [];
     let frame = 0;
+    let pointerFrame = 0;
 
     function updateDepth() {
       frame = 0;
@@ -79,13 +82,44 @@ export function useGalleryMotion(root: RefObject<HTMLDivElement | null>) {
       if (!quiet.matches && !frame) frame = requestAnimationFrame(updateDepth);
     }
 
+    function updateMouseDrift() {
+      pointerFrame = 0;
+      if (quiet.matches || compact.matches || !pointer.matches) return;
+      const x = (lastPointer.x / Math.max(1, innerWidth) - .5) * 2;
+      const y = (lastPointer.y / Math.max(1, innerHeight) - .5) * 2;
+      for (const scene of scenes) {
+        const depth = scene.closest<HTMLElement>("[data-depth]")?.dataset.depth;
+        const travel = depth === "near" ? 15 : depth === "middle" ? 10 : 6;
+        scene.style.setProperty("--v4-mouse-x", `${(-x * travel).toFixed(1)}px`);
+        scene.style.setProperty("--v4-mouse-y", `${(-y * travel).toFixed(1)}px`);
+      }
+    }
+
+    let lastPointer = { x: innerWidth / 2, y: innerHeight / 2 };
+    function onPointerMove(event: PointerEvent) {
+      if (event.pointerType !== "mouse") return;
+      lastPointer = { x: event.clientX, y: event.clientY };
+      if (!pointerFrame) pointerFrame = requestAnimationFrame(updateMouseDrift);
+    }
+    function clearMouseDrift() {
+      for (const scene of scenes) {
+        scene.style.setProperty("--v4-mouse-x", "0px");
+        scene.style.setProperty("--v4-mouse-y", "0px");
+      }
+    }
+
     function motionPreferenceChanged() {
       if (quiet.matches) {
         cancelAnimationFrame(frame);
+        cancelAnimationFrame(pointerFrame);
         frame = 0;
+        pointerFrame = 0;
         tiles.forEach(tile => tile.style.removeProperty("--v4-depth"));
+        clearMouseDrift();
       } else {
         queueDepth();
+        if (compact.matches || !pointer.matches) clearMouseDrift();
+        else if (!pointerFrame) pointerFrame = requestAnimationFrame(updateMouseDrift);
       }
     }
 
@@ -118,21 +152,28 @@ export function useGalleryMotion(root: RefObject<HTMLDivElement | null>) {
         io.observe(item);
       });
       tiles = Array.from(surface.querySelectorAll<HTMLElement>("[data-depth]"));
+      scenes = Array.from(surface.querySelectorAll<HTMLElement>("[data-scene-drift]"));
       queueDepth();
+      if (!compact.matches && pointer.matches && !quiet.matches && !pointerFrame) pointerFrame = requestAnimationFrame(updateMouseDrift);
     }
     refresh();
     const changes = new MutationObserver(refresh);
     changes.observe(surface, { childList: true, subtree: true });
     addEventListener("scroll", queueDepth, { passive: true });
     addEventListener("resize", queueDepth);
+    surface.addEventListener("pointermove", onPointerMove, { passive: true });
+    surface.addEventListener("pointerleave", clearMouseDrift);
     quiet.addEventListener("change", motionPreferenceChanged);
     return () => {
       io.disconnect();
       changes.disconnect();
       removeEventListener("scroll", queueDepth);
       removeEventListener("resize", queueDepth);
+      surface.removeEventListener("pointermove", onPointerMove);
+      surface.removeEventListener("pointerleave", clearMouseDrift);
       quiet.removeEventListener("change", motionPreferenceChanged);
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(pointerFrame);
     };
   }, [root]);
 }

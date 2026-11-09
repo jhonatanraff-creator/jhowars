@@ -41,7 +41,7 @@ export function curate(posts: HomePost[]) {
   return { first, rest: usable.filter(p => !selected.has(p._id)), all: usable };
 }
 
-export function planPanel(posts: HomePost[], index: number) {
+export function planPanel(posts: HomePost[], index: number, compositionWidth = 1200, canvas = 800) {
   const layout = layoutFor(index);
   const template = layout < 0 ? opening : arrangements[layout];
   const mirror = index >= 0 && Math.floor(index / arrangements.length) % 2 === 1;
@@ -60,6 +60,43 @@ export function planPanel(posts: HomePost[], index: number) {
     return { post: remaining.splice(best, 1)[0], slot: [mirror ? 100 - x - w : x, y, w, h] as Slot };
   });
   const ordered = fitted.sort((a, b) => a.slot[1] - b.slot[1] || a.slot[0] - b.slot[0]);
+  const intervention = interventionFor(index, layout, mirror);
+  // Resolve desktop placement against each real image and its caption. The
+  // source templates provide the art direction; this pass provides collision
+  // safety without turning the composition into a repeated card grid.
+  const protectedAreas = index < 0 ? [{ x: compositionWidth * .245, right: compositionWidth * .545, top: canvas * .49, bottom: canvas * .49 + 92 }] : [];
+  if (intervention) {
+    const [accentX, accentY, accentWidth] = intervention.desktop;
+    const accentTop = accentY * canvas / 100;
+    const accentHeight = intervention.graphic ? (intervention.phrase ? 250 : 350) : 110;
+    protectedAreas.push({ x: accentX * compositionWidth / 100, right: (accentX + accentWidth) * compositionWidth / 100, top: accentTop, bottom: accentTop + accentHeight });
+  }
+  const placed: Array<{ x: number; right: number; top: number; bottom: number }> = [...protectedAreas];
+  const safeTiles = ordered.map((tile) => {
+    const [sourceX, y, sourceW] = tile.slot;
+    const w = Math.min(sourceW * 1.04, 100);
+    const x = Math.min(sourceX, 100 - w);
+    const left = x * compositionWidth / 100;
+    const right = left + w * compositionWidth / 100;
+    const imageHeight = w * compositionWidth / (100 * (ratioOf(tile.post) ?? 1));
+    const captionLines = Math.ceil((nameOfForLayout(tile.post).length || 1) / Math.max(12, Math.floor((right - left) / 7))) + (tile.post.year || tile.post.artwork?.year || tile.post.project?.year ? 1 : 0);
+    const blockHeight = imageHeight + 9 + captionLines * 18;
+    let top = y * canvas / 100;
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const block of placed) {
+        const horizontal = left < block.right + 48 && right > block.x - 48;
+        const vertical = top < block.bottom + 48 && top + blockHeight > block.top - 48;
+        if (horizontal && vertical) {
+          top = block.bottom + 48;
+          changed = true;
+        }
+      }
+    }
+    placed.push({ x: left, right, top, bottom: top + blockHeight });
+    return { ...tile, slot: [x, top, w, tile.slot[3]] as Slot };
+  });
   let mobileY = index < 0 ? 4 : 2;
   let statementTop = 0;
   const tiles = ordered.map((tile, i) => {
@@ -74,7 +111,6 @@ export function planPanel(posts: HomePost[], index: number) {
     if (index < 0 && ordered.length === 1) { statementTop = mobileY; mobileY += 26; }
     return { ...tile, ratio, mobile: [left, top, width] as const };
   });
-  const intervention = interventionFor(index, layout, mirror);
   let editorial = null;
   if (intervention) {
     const minHeight = intervention.graphic && intervention.phrase ? 68 : 49;
@@ -94,9 +130,18 @@ export function planPanel(posts: HomePost[], index: number) {
       mobile = [21, mobileY, 58];
       mobileY += intervention.graphic && intervention.phrase ? 42 : 31;
     }
-    editorial = { ...intervention, mobile };
+    editorial = { ...intervention, desktop: [intervention.desktop[0], intervention.desktop[1] * canvas / 100, intervention.desktop[2]], mobile };
   }
-  return { tiles, mobileHeight: mobileY, statementTop, editorial };
+  const composedTiles = safeTiles.map((tile, i) => ({
+    ...tile,
+    ratio: tiles[i].ratio,
+    mobile: tiles[i].mobile,
+  }));
+  return { tiles: composedTiles, mobileHeight: mobileY, statementTop, editorial };
+}
+
+function nameOfForLayout(post: HomePost) {
+  return post.modalTitle || post.artwork?.title || post.project?.title || post.internalName || "";
 }
 
 export function panelSource(posts: ReturnType<typeof curate>, index: number) {
