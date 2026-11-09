@@ -8,7 +8,7 @@ const compile = source => ts.transpileModule(source, { compilerOptions: { module
 const asUrl = source => "data:text/javascript;base64," + Buffer.from(source).toString("base64");
 const editorialUrl = asUrl(compile(await readFile(new URL("editorial-plan.ts", directory), "utf8")));
 const source = compile(await readFile(new URL("composition.ts", directory), "utf8")).replace('"./editorial-plan"', JSON.stringify(editorialUrl));
-const { planPanel, overlaps, panelAdvance, panelBoxes } = await import(asUrl(source));
+const { planPanel, overlaps, panelAdvance, panelBoxes, fitPanelBoundary } = await import(asUrl(source));
 const works = Array.from({length:8}, (_, i) => ({_id:String(i), image:"image.png", internalName:i === 3 ? "A long published artwork title that must wrap without colliding with adjacent elements" : "Artwork " + i, year:2026, imageAspectRatio:[.32,.67,.8,1,1.4,1.9,3.6,.9][i]}));
 const screens = [[1920,1080],[1440,900],[1280,800],[1024,768],[768,1024],[430,932],[390,844],[375,812],[320,700]];
 
@@ -41,6 +41,7 @@ test("interlocked panels preserve motion clearance across boundaries and repeate
   for (const [vw,vh] of screens) for (const en of [false,true]) {
     const compact=vw<=900, width=vw*(compact?.91:.938);
     const panels=Array.from({length:61},(_,i)=>planPanel(i===0?works:works.slice((i-1)%4,(i-1)%4+4),i-1,width,vh-140,undefined,en,compact));
+    for(let i=1;i<panels.length;i++) panels[i]=fitPanelBoundary(panels[i-1],panels[i],width,compact);
     let y=0;
     const boxes=[];
     for(let i=0;i<panels.length;i++) {

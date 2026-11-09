@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { flushSync } from "react-dom";
-import { type curate, type TextMeasure, panelSource, planPanel, panelAdvance } from "./composition";
+import { type curate, type TextMeasure, panelSource, planPanel, panelAdvance, fitPanelBoundary } from "./composition";
 import styles from "./home-v4.module.css";
 
 const initial = { base: 0, start: 0, end: 4, spacer: 0, runway: 0 };
@@ -161,6 +161,7 @@ export function useEditionWindow(catalog: ReturnType<typeof curate>, surface: Re
       // the cached plans; no per-frame layout measurement or DOM writes.
       const panels = Array.from({length:repetition.before + repetition.period}, (_, i) => planPanel(panelSource(catalog, i), i, width, canvas, text, en, mobile));
       const opening = planPanel(catalog.first, -1, width, canvas, text, en, mobile);
+      for (let i = 0; i < panels.length; i++) panels[i] = fitPanelBoundary(i ? panels[i - 1] : opening, panels[i], width, mobile);
       lastMetrics.current = { width, canvas, mobile, panels, opening };
       setMetrics(lastMetrics.current);
     }

@@ -89,13 +89,13 @@ function place(width: number, height: number, desiredX: number, desiredY: number
         Math.max(0, Math.min(right, item.x + item.width) - Math.max(left, item.x)) *
         Math.max(0, Math.min(y + height, item.y + item.height) - Math.max(y, item.y)), 0);
     });
-    const imbalance = (Math.max(...regions) - Math.min(...regions)) / Math.max(1, height);
+    const imbalance = placed.length ? (Math.max(...regions) - Math.min(...regions)) / Math.max(1, height) : 0;
     const distance = anchor ? Math.hypot(
       Math.max(0, anchor.x - x - width, x - anchor.x - anchor.width),
       Math.max(0, anchor.y - y - height, y - anchor.y - anchor.height),
     ) : 0;
     const cost = Math.max(currentBottom, y + height) * .76 + y * .18 +
-      Math.abs(x - desiredX) * .24 + Math.abs(y - desiredY) * .12 + imbalance * .38 + distance * 1.5;
+      Math.abs(x - desiredX) * .36 + Math.abs(y - desiredY) * .16 + imbalance * .1 + distance * 1.5;
     if (cost < score) { score = cost; best = box; }
   }
   // A bottom candidate always exists, including for a very long CMS title.
@@ -145,6 +145,7 @@ export function planPanel(posts: HomePost[], index: number, compositionWidth = 1
   }
 
   for (let i = 0; i < Math.min(posts.length, template.length); i++) {
+    if (i === 2) addEditorial();
     if (index < 0 && compact && i === 2) {
       const w = Math.min(compositionWidth * .82, 500);
       const h = textHeight("statement", statementText(en), w);
@@ -176,7 +177,8 @@ export function planPanel(posts: HomePost[], index: number, compositionWidth = 1
     // the caption's 3px focus emphasis. The full image and caption move together.
     const dx = mouse + 4;
     const dy = scroll / 2 + mouse + 18;
-    const desiredX = (mirror ? 100 - source[0] - source[2] : source[0]) / 100 * compositionWidth;
+    const desiredX = posts.length === 2 && i === 1 && !compact ? (mirror ? .05 : .69) * compositionWidth :
+      (mirror ? 100 - source[0] - source[2] : source[0]) / 100 * compositionWidth;
     const desiredY = narrow ? Math.max(16, ...placed.map(b => b.y + b.height)) + (placed.length ? gap : 0) : source[1] / 100 * canvas * .65;
     const protectedBox = place(width + dx * 2, imageHeight + captionHeight + dy * 2, desiredX - dx, desiredY, compositionWidth, placed, gap);
     placed.push(protectedBox);
@@ -212,6 +214,34 @@ export function panelAdvance(current: ReturnType<typeof planPanel>, next: Return
     }
   }
   return Math.ceil(advance);
+}
+
+export function fitPanelBoundary(previous: ReturnType<typeof planPanel>, next: ReturnType<typeof planPanel>, width: number, compact = false) {
+  if (compact) return next;
+  let result = next;
+  // Move only leading artworks horizontally into the open side of the previous
+  // composition. Keep their sizes, vertical rhythm and all safety envelopes.
+  // Recalculate the final advance afterwards, including at the periodic seam.
+  for (let i = 0; i < next.tiles.length; i++) {
+    const tile = result.tiles[i];
+    if (tile.protectedBox.y > next.height * .4) continue;
+    let best = result;
+    let score = panelAdvance(previous, result);
+    const others = panelBoxes(result).filter(box => box !== tile.protectedBox);
+    const right = width - tile.protectedBox.width;
+    for (let col = 0; col <= 24; col++) {
+      const x = right * col / 24;
+      const protectedBox = { ...tile.protectedBox, x };
+      if (others.some(box => overlaps(box, protectedBox, 48))) continue;
+      const dx = x - tile.protectedBox.x;
+      const tiles = result.tiles.map((item, j) => j === i ? { ...item, protectedBox, box: { ...item.box, x: item.box.x + dx } } : item);
+      const candidate = { ...result, tiles };
+      const cost = panelAdvance(previous, candidate) + Math.abs(dx) * .12;
+      if (cost < score) { best = candidate; score = cost; }
+    }
+    result = best;
+  }
+  return result;
 }
 
 export function panelSource(posts: ReturnType<typeof curate>, index: number) {
