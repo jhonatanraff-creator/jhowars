@@ -206,7 +206,7 @@ export function panelAdvance(current: ReturnType<typeof planPanel>, next: Return
   const a = panelBoxes(current), b = panelBoxes(next);
   if (!a.length || !b.length) return current.height;
   const gap = compact ? 28 : 48;
-  const minimum = current.height - Math.min(current.height, next.height) * .35;
+  const minimum = current.height - Math.min(current.height, next.height) * .48;
   let advance = minimum;
   for (const first of a) for (const second of b) {
     if (first.x < second.x + second.width + gap && first.x + first.width + gap > second.x) {
@@ -240,6 +240,25 @@ export function fitPanelBoundary(previous: ReturnType<typeof planPanel>, next: R
       if (cost < score) { best = candidate; score = cost; }
     }
     result = best;
+  }
+  // Two leading works can block each other: moving either one alone does not
+  // improve the boundary. Evaluate the pair together without changing scale.
+  const leading = result.tiles.map((tile, i) => ({tile, i})).filter(({tile}) => tile.protectedBox.y < next.height * .4).sort((a,b) => a.tile.box.y - b.tile.box.y).slice(0, 2);
+  if (leading.length === 2) {
+    const [a, b] = leading;
+    const others = panelBoxes(result).filter(box => box !== a.tile.protectedBox && box !== b.tile.protectedBox);
+    let best = result;
+    let score = panelAdvance(previous, result);
+    for (let colA = 0; colA <= 24; colA++) for (let colB = 0; colB <= 24; colB++) {
+      const boxA = {...a.tile.protectedBox, x:(width-a.tile.protectedBox.width)*colA/24};
+      const boxB = {...b.tile.protectedBox, x:(width-b.tile.protectedBox.width)*colB/24};
+      if (overlaps(boxA,boxB,48) || others.some(box => overlaps(boxA,box,48) || overlaps(boxB,box,48))) continue;
+      const dxA=boxA.x-a.tile.protectedBox.x, dxB=boxB.x-b.tile.protectedBox.x;
+      const candidate={...result,tiles:result.tiles.map((tile,i)=>i===a.i?{...tile,protectedBox:boxA,box:{...tile.box,x:tile.box.x+dxA}}:i===b.i?{...tile,protectedBox:boxB,box:{...tile.box,x:tile.box.x+dxB}}:tile)};
+      const cost=panelAdvance(previous,candidate)+(Math.abs(dxA)+Math.abs(dxB))*.12;
+      if(cost<score){score=cost;best=candidate;}
+    }
+    result=best;
   }
   return result;
 }

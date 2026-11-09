@@ -62,6 +62,15 @@ test("a neighbouring panel can occupy the unused side of a tall trailing work",(
   assert.ok(panelAdvance(a,b)<a.height-200);
 });
 
+test("two leading works can move together to release a blocked editorial boundary",()=>{
+  const panel=boxes=>({tiles:boxes.map(protectedBox=>({protectedBox,box:{...protectedBox}})),editorial:null,statement:null,height:Math.max(...boxes.map(b=>b.y+b.height))+32});
+  const previous=panel([{x:0,y:16,width:420,height:600},{x:465,y:16,width:300,height:500},{x:930,y:650,width:406,height:580}]);
+  const next=panel([{x:37,y:16,width:420,height:610},{x:846,y:16,width:345,height:450},{x:510,y:670,width:420,height:500}]);
+  const fitted=fitPanelBoundary(previous,next,1337);
+  assert.ok(panelAdvance(previous,fitted)<panelAdvance(previous,next)-300);
+  assert.deepEqual(fitted.tiles.map(t=>[t.box.width,t.box.height,t.box.y]),next.tiles.map(t=>[t.box.width,t.box.height,t.box.y]));
+});
+
 test("long measured captions change placement and remain protected",()=>{
   const measure=(kind,text,width)=>kind==="caption"?Math.ceil(text.length*8/width)*25+50:80;
   const panel=planPanel(works.slice(0,4),0,1340,780,measure);
