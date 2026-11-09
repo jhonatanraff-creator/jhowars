@@ -8,7 +8,7 @@ const compile = source => ts.transpileModule(source, { compilerOptions: { module
 const asUrl = source => "data:text/javascript;base64," + Buffer.from(source).toString("base64");
 const editorialUrl = asUrl(compile(await readFile(new URL("editorial-plan.ts", directory), "utf8")));
 const source = compile(await readFile(new URL("composition.ts", directory), "utf8")).replace('"./editorial-plan"', JSON.stringify(editorialUrl));
-const { planPanel, overlaps } = await import(asUrl(source));
+const { planPanel, overlaps, panelAdvance, panelBoxes } = await import(asUrl(source));
 const works = Array.from({length:8}, (_, i) => ({_id:String(i), image:"image.png", internalName:i === 3 ? "A long published artwork title that must wrap without colliding with adjacent elements" : "Artwork " + i, year:2026, imageAspectRatio:[.32,.67,.8,1,1.4,1.9,3.6,.9][i]}));
 const screens = [[1920,1080],[1440,900],[1280,800],[1024,768],[768,1024],[430,932],[390,844],[375,812],[320,700]];
 
@@ -35,6 +35,30 @@ test("motion envelopes, captions and interventions stay disjoint at every breakp
     let bottom=0;
     for (const [top,end] of intervals) { assert.ok(top-bottom < vh/2,"unjustified full-width gap"); bottom=Math.max(bottom,end); }
   }
+});
+
+test("interlocked panels preserve motion clearance across boundaries and repeated cycles", () => {
+  for (const [vw,vh] of screens) for (const en of [false,true]) {
+    const compact=vw<=900, width=vw*(compact?.91:.938);
+    const panels=Array.from({length:61},(_,i)=>planPanel(i===0?works:works.slice((i-1)%4,(i-1)%4+4),i-1,width,vh-140,undefined,en,compact));
+    let y=0;
+    const boxes=[];
+    for(let i=0;i<panels.length;i++) {
+      for(const box of panelBoxes(panels[i])) {
+        const placed={...box,y:box.y+y};
+        for(const prior of boxes) assert.equal(overlaps(placed,prior),false,`boundary collision ${vw}/${i}`);
+        boxes.push(placed);
+      }
+      if(panels[i+1]) y+=panelAdvance(panels[i],panels[i+1],compact);
+    }
+  }
+});
+
+test("a neighbouring panel can occupy the unused side of a tall trailing work",()=>{
+  const panel=boxes=>({tiles:boxes.map(protectedBox=>({protectedBox})),editorial:null,statement:null,height:Math.max(...boxes.map(b=>b.y+b.height))+32});
+  const a=panel([{x:0,y:0,width:350,height:300},{x:900,y:300,width:350,height:600}]);
+  const b=panel([{x:0,y:0,width:350,height:500},{x:900,y:450,width:350,height:300}]);
+  assert.ok(panelAdvance(a,b)<a.height-200);
 });
 
 test("long measured captions change placement and remain protected",()=>{

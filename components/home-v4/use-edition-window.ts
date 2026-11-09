@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { flushSync } from "react-dom";
-import { type curate, type TextMeasure, panelSource, planPanel } from "./composition";
+import { type curate, type TextMeasure, panelSource, planPanel, panelAdvance } from "./composition";
 import styles from "./home-v4.module.css";
 
 const initial = { base: 0, start: 0, end: 4, spacer: 0, runway: 0 };
@@ -63,7 +63,10 @@ export function useEditionWindow(catalog: ReturnType<typeof curate>, surface: Re
   const geometry = useMemo(() => {
     if (!metrics) return null;
     const offsets = [0];
-    for (const panel of plan.panels) offsets.push(offsets.at(-1)! + panel.height);
+    for (const [i, panel] of plan.panels.entries()) {
+      const next = plan.panels[i + 1] ?? plan.panels[plan.before];
+      offsets.push(offsets.at(-1)! + panelAdvance(panel, next, metrics.mobile));
+    }
     return { before: plan.before, period: plan.period, offsets };
   }, [metrics, plan]);
   const previousGeometry = useRef<Geometry | null>(null);
@@ -225,7 +228,7 @@ export function useEditionWindow(catalog: ReturnType<typeof curate>, surface: Re
     capturePosition,
     restorePosition,
     toTop,
-    heightAt: (i: number) => geometry ? within(geometry, i + 1) - within(geometry, i) : undefined,
+    heightAt: (i: number) => i < 0 ? metrics && metrics.panels[0] ? panelAdvance(metrics.opening, metrics.panels[0], metrics.mobile) : metrics?.opening.height : geometry ? within(geometry, i + 1) - within(geometry, i) : undefined,
     panelAt,
   };
 }

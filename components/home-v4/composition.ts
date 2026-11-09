@@ -63,20 +63,39 @@ export function overlaps(a: Box, b: Box, gap = 0) {
     a.y < b.y + b.height + gap && a.y + a.height + gap > b.y;
 }
 
-function place(width: number, height: number, desiredX: number, desiredY: number, surfaceWidth: number, placed: Box[], gap: number): Box {
+function place(width: number, height: number, desiredX: number, desiredY: number, surfaceWidth: number, placed: Box[], gap: number, anchor?: Box): Box {
   const right = Math.max(0, surfaceWidth - width);
   const xs = new Set([0, right, Math.max(0, Math.min(right, desiredX))]);
   for (let col = 0; col <= 24; col++) xs.add(right * col / 24);
   const ys = new Set([16, Math.max(16, desiredY)]);
-  for (const box of placed) { ys.add(box.y); ys.add(box.y + box.height + gap); }
+  for (const box of placed) {
+    ys.add(box.y); ys.add(box.y + box.height + gap);
+    ys.add(Math.max(16, box.y + box.height / 2 - height / 2));
+    xs.add(Math.max(0, Math.min(right, box.x - width - gap)));
+    xs.add(Math.max(0, Math.min(right, box.x + box.width + gap)));
+  }
   const currentBottom = Math.max(0, ...placed.map(b => b.y + b.height));
   let best: Box | undefined;
   let score = Infinity;
   for (const x of xs) for (const y of ys) {
     const box = { x, y, width, height };
     if (placed.some(other => overlaps(box, other, gap))) continue;
+    // Evaluate visual mass in horizontal regions over this item's vertical
+    // span, rather than rewarding only the shortest overall panel.
+    const regions = [0, 1, 2].map(region => {
+      const left = region * surfaceWidth / 3;
+      const right = left + surfaceWidth / 3;
+      return [...placed, box].reduce((area, item) => area +
+        Math.max(0, Math.min(right, item.x + item.width) - Math.max(left, item.x)) *
+        Math.max(0, Math.min(y + height, item.y + item.height) - Math.max(y, item.y)), 0);
+    });
+    const imbalance = (Math.max(...regions) - Math.min(...regions)) / Math.max(1, height);
+    const distance = anchor ? Math.hypot(
+      Math.max(0, anchor.x - x - width, x - anchor.x - anchor.width),
+      Math.max(0, anchor.y - y - height, y - anchor.y - anchor.height),
+    ) : 0;
     const cost = Math.max(currentBottom, y + height) * .76 + y * .18 +
-      Math.abs(x - desiredX) * .36 + Math.abs(y - desiredY) * .16;
+      Math.abs(x - desiredX) * .24 + Math.abs(y - desiredY) * .12 + imbalance * .38 + distance * 1.5;
     if (cost < score) { score = cost; best = box; }
   }
   // A bottom candidate always exists, including for a very long CMS title.
@@ -115,15 +134,17 @@ export function planPanel(posts: HomePost[], index: number, compositionWidth = 1
     const phrase = intervention.phrase;
     const phraseHeight = phrase ? textHeight("phrase", en ? phrase.en : phrase.text, width, phrase.scale + ":" + phrase.style) : 0;
     const height = graphicHeight + phraseHeight + (graphicHeight && phraseHeight ? 22 : 0);
-    const x = (mirror ? .12 : .72) * Math.max(0, compositionWidth - width);
-    const desiredY = compact ? Math.max(16, ...placed.map(b => b.y + b.height)) + gap : canvas * .23;
-    const protectedBox = place(width + 12, height + 24, x, desiredY, compositionWidth, placed, gap);
+    // A phrase belongs to a nearby visual group, while retaining its own
+    // semantic identity. Prefer a smaller work, not an arbitrary panel floor.
+    const anchor = tiles.length ? tiles.reduce((a, b) => a.box.width * a.box.height < b.box.width * b.box.height ? a : b).protectedBox : undefined;
+    const x = anchor ? anchor.x + anchor.width + gap : compositionWidth * .45;
+    const desiredY = anchor ? anchor.y + (anchor.height - height) / 2 : 16;
+    const protectedBox = place(width + 12, height + 24, x, desiredY, compositionWidth, placed, gap, anchor);
     placed.push(protectedBox);
     editorial = { ...intervention, box: { x: protectedBox.x + 6, y: protectedBox.y + 12, width, height }, graphicWidth, graphicHeight, protectedBox };
   }
 
   for (let i = 0; i < Math.min(posts.length, template.length); i++) {
-    if (i === 2) addEditorial();
     if (index < 0 && compact && i === 2) {
       const w = Math.min(compositionWidth * .82, 500);
       const h = textHeight("statement", statementText(en), w);
@@ -170,6 +191,27 @@ export function planPanel(posts: HomePost[], index: number, compositionWidth = 1
     placed.push(statement);
   }
   return { tiles, statement, editorial: editorial as EditorialPlan | null, height: Math.ceil(Math.max(0, ...placed.map(b => b.y + b.height)) + (compact ? 24 : 32)) };
+}
+
+export function panelBoxes(panel: ReturnType<typeof planPanel>): Box[] {
+  return [...panel.tiles.map(tile => tile.protectedBox), ...(panel.editorial ? [panel.editorial.protectedBox] : []), ...(panel.statement ? [panel.statement] : [])];
+}
+
+// Neighbouring compositions interlock only where their full motion envelopes
+// allow it. The overlap cap also keeps non-neighbouring panels disjoint, so
+// periodic virtualization can retain its existing bounded, deterministic cache.
+export function panelAdvance(current: ReturnType<typeof planPanel>, next: ReturnType<typeof planPanel>, compact = false) {
+  const a = panelBoxes(current), b = panelBoxes(next);
+  if (!a.length || !b.length) return current.height;
+  const gap = compact ? 28 : 48;
+  const minimum = current.height - Math.min(current.height, next.height) * .35;
+  let advance = minimum;
+  for (const first of a) for (const second of b) {
+    if (first.x < second.x + second.width + gap && first.x + first.width + gap > second.x) {
+      advance = Math.max(advance, first.y + first.height + gap - second.y);
+    }
+  }
+  return Math.ceil(advance);
 }
 
 export function panelSource(posts: ReturnType<typeof curate>, index: number) {

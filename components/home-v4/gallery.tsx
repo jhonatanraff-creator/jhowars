@@ -103,7 +103,7 @@ export function Gallery({ posts, locale, settings }: { posts: HomePost[]; locale
   const contact = email ? `mailto:${email}` : about;
 
   function renderPanel(panel: ReturnType<typeof planPanel>, id: number) {
-    return <div className={styles.leaf} data-opening={id < 0} data-leaf={id} style={{ height: panel.height }}>
+    return <div className={styles.leaf} data-opening={id < 0} data-leaf={id} style={{ height: window.heightAt(id) ?? panel.height }}>
       {panel.statement && <h1 className={styles.statement} style={{left:panel.statement.x,top:panel.statement.y,width:panel.statement.width}}><span>{en ? "Artist, illustrator, printmaker," : "Artista, ilustrador, impressor,"}</span><span><em>{en ? "questioner" : "questionador"}</em>, etc.</span></h1>}
       {panel.tiles.map(({ post, box, ratio, motion, protectedBox, scale }, order) => {
         return <figure key={post._id} data-tile data-depth={scale} data-work={post._id} data-motion-scroll={motion.scroll} data-motion-mouse={motion.mouse} data-envelope={JSON.stringify(protectedBox)} data-print={id >= 0 ? "" : undefined} className={styles.tile} style={{ left:box.x,top:box.y,width:box.width,"--ratio":ratio,"--reveal-delay": `${Math.min(order, 3) * 42}ms` } as CSSProperties}>

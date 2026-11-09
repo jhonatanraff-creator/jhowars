@@ -90,7 +90,8 @@
 .menu a:is(:hover,:focus-visible) { text-decoration-color:currentColor; }
 .menu > a { transition:translate .35s var(--ease),opacity .25s,text-decoration-color .25s; }
 .surface { width:93.8%; margin:auto; padding-top:var(--head); container-type:inline-size; overflow-anchor:none; }
-.leaf { position:relative; isolation:isolate; }
+.leaf { position:relative; isolation:isolate; pointer-events:none; }
+.leaf > :is(.tile,.accent,.statement) { pointer-events:auto; }
 .tile {
   position:absolute; margin:0;
 }
@@ -165,22 +166,18 @@
   to { clip-path:inset(0); translate:0; opacity:1; }
 }
 .accent [data-motion-part="bar"] { transform-box:fill-box; transform-origin:center bottom; }
-.accent [data-motion-part="star"] { transform-origin:89.5px 77px; }
-.accent [data-motion-part="eye"] { transform-origin:91px 108px; }
+.accent [data-motion-part="star"] { transform-origin:89.5px 77px; animation:graphic-spin 12s linear infinite; animation-play-state:paused; }
+.accent [data-motion-part="eye"] { transform-origin:91px 108px; animation:graphic-spin 10s linear infinite; animation-play-state:paused; }
 .accent[data-in-view] [data-motion-part="bar"] { animation:bar-wave 2.2s var(--part-delay) ease-in-out both; }
-.accent[data-in-view] [data-motion-part="star"] { animation:graphic-spin 4.4s cubic-bezier(.25,.65,.34,1) both; }
-.accent[data-in-view] [data-motion-part="eye"] { animation:graphic-spin 2.2s var(--ease) both; }
+.accent[data-in-view] :is([data-motion-part="star"],[data-motion-part="eye"]) { animation-play-state:running; }
 .accent[data-in-view] [data-motion-part="dot"] { animation:dot-wave 1.55s var(--part-delay) ease-in-out both; }
 @media (hover:hover) and (pointer:fine) {
   .accent[data-in-view] svg:hover [data-motion-part="bar"] { animation-name:bar-response; }
-  .accent[data-in-view] svg:hover [data-motion-part="star"] { animation-name:graphic-response; }
-  .accent[data-in-view] svg:hover [data-motion-part="eye"] { animation-name:graphic-response; }
   .accent[data-in-view] svg:hover [data-motion-part="dot"] { animation-name:dot-response; }
 }
 @keyframes bar-wave { 24% { transform:scaleY(.64); } 52% { transform:scaleY(1.12); } 73% { transform:scaleY(.92); } }
 @keyframes bar-response { 28% { transform:scaleY(.77); } 54% { transform:scaleY(1.1); } 78% { transform:scaleY(.95); } }
 @keyframes graphic-spin { to { transform:rotate(360deg); } }
-@keyframes graphic-response { to { transform:rotate(360deg); } }
 @keyframes dot-wave { 27% { transform:translate(2px,var(--dot-y)); } 55% { transform:translate(-1px,calc(var(--dot-y) * -.42)); } 76% { transform:translateY(calc(var(--dot-y) * .15)); } }
 @keyframes dot-response { 32% { transform:translate(3px,var(--dot-y)); } 60% { transform:translate(-1px,calc(var(--dot-y) * -.36)); } }
 .imprint { position:fixed; z-index:4; inset:auto 0 0; height:var(--imprint); padding-bottom:env(safe-area-inset-bottom, 0px); background:var(--paper); border-top:1px solid var(--line); color:var(--muted); transition:background-color .42s,color .28s; }
