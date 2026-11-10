@@ -6,8 +6,10 @@ import { ArtworkWall } from "@/components/artwork-wall";
 import { ProjectContentBlocks } from "@/components/project-content-blocks";
 import { ProjectImageLightbox } from "@/components/project-image-lightbox";
 import { ProjectListing } from "@/components/project-listing";
+import { InternalPageHeader } from "@/components/internal-page-header";
 import { copy, localizedHref, type Locale } from "@/lib/i18n";
 import { getAboutPage, getHomePosts, getProjectBySlug, getProjects, getProjectsPage, getShopItems, getSiteSettings } from "@/lib/portfolio";
+import headingStyles from "./internal-page-header.module.css";
 
 const projectPaths = { pt: "/projetos", en: "/en/projects" } as const;
 const detailPath = (locale: Locale, slug: string) => `${projectPaths[locale]}/${slug}`;
@@ -22,11 +24,7 @@ export async function ProjectsContent({ locale }: { locale: Locale }) {
   const projects = allProjects.filter((project) => project.showInProjects !== false);
   const labels = copy[locale];
   return <div className="projects-index">
-    <header className="projects-page-heading">
-      <p className="eyebrow">{page.eyebrow || (locale === "en" ? "ARCHIVE" : "ARQUIVO")}</p>
-      <h1>{page.title || (locale === "en" ? "PROJECTS" : "PROJETOS")}</h1>
-      {page.optionalIntro && <p className="projects-page-intro">{page.optionalIntro}</p>}
-    </header>
+    <InternalPageHeader label={page.eyebrow || (locale === "en" ? "ARCHIVE" : "ARQUIVO")} title={locale === "en" ? "PROJECTS" : "PROJETOS"} intro={page.optionalIntro} />
     <ProjectListing projects={projects} locale={locale} labels={{ all: labels.all, noProjectsInCategory: labels.noProjectsInCategory }} />
   </div>;
 }
@@ -78,8 +76,9 @@ export async function AboutContent({ locale }: { locale: Locale }) {
   const media = about?.heroMedia?.url;
   const mediaAlt = about?.heroMediaAlt || (locale === "en" ? "Jhow.ars artwork" : "Trabalho de Jhow.ars");
   return <article className="about-page page-shell">
+    <InternalPageHeader label="JHOW.ARS" title={locale === "en" ? "ABOUT" : "SOBRE"} />
     <section className="about-introduction">
-      <h1>{about?.creatorHeading || (locale === "en" ? "who creates" : "quem cria")}</h1>
+      <h2 className={headingStyles.secondaryTitle}>{about?.creatorHeading || (locale === "en" ? "who creates" : "quem cria")}</h2>
       <div className="about-lead-grid">
         {intro && <p className="about-lead-copy">{intro}</p>}
         {(media || about?.portrait) && <figure className="about-hero-media">

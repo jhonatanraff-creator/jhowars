@@ -11,10 +11,11 @@
 .mascot :global([data-animated-brand]) { display:block; width:100%; height:100%; }
 .mascot svg { width:100%; height:100%; transition:transform .35s cubic-bezier(.19,.77,.23,1); }
 .mascot:is(:hover,:focus-visible) svg { transform:translateY(-2px) rotate(-4deg); }
-.mascot :global([data-brand-star]) { transform-box:fill-box; transform-origin:center; animation:brand-star-breathe 8s ease-in-out infinite; }
+.mascot :global([data-brand-star]) { transform-box:fill-box; transform-origin:center; animation:brand-star-turn 10s linear infinite; }
+.mascot:is(:hover,:focus-visible) :global([data-brand-star]) { animation-play-state:paused; }
 .shell[data-theme="dark"] .mascot svg { fill:#f9f8f7; }
 .shell[data-theme="dark"] .mascot :global(.jhow-latest-2) { fill:#f9f8f7; }
-@keyframes brand-star-breathe { 0%,100% { transform:rotate(-7deg) scale(.98); } 50% { transform:rotate(7deg) scale(1.035); } }
+@keyframes brand-star-turn { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
 .mobileMenu { z-index:3; }
 .content { padding-top:calc(var(--head) + 24px); padding-bottom:calc(var(--imprint) + 40px); min-height:100svh; font-family:var(--v4-type); }
 .content :global(.page-shell),.content :global(.page-shell *) { --paper:inherit; --ink:inherit; --paper-2:inherit; }
