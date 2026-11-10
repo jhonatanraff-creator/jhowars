@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IdentityShell } from "@/components/identity-shell";
+import { AnimatedBrandMark } from "@/components/brand/AnimatedBrandMark";
 import { getSiteSettings } from "@/lib/portfolio";
 import { headers } from "next/headers";
 import type { Locale } from "@/lib/i18n";
@@ -31,5 +32,5 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     getSiteSettings("pt"),
   ]);
   const settingsByLocale = { en: settingsByEn, pt: settingsByPt };
-  return <html lang={locale === "en" ? "en" : "pt-BR"}><body><LocaleDocument /><IdentityShell settings={settings} settingsByLocale={settingsByLocale}>{children}</IdentityShell></body></html>;
+  return <html lang={locale === "en" ? "en" : "pt-BR"}><body><LocaleDocument /><IdentityShell brand={<AnimatedBrandMark />} settings={settings} settingsByLocale={settingsByLocale}>{children}</IdentityShell></body></html>;
 }
