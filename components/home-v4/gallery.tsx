@@ -37,6 +37,7 @@ export function Gallery({ posts, locale }: { posts: HomePost[]; locale: Locale }
   const first = panelAt(-1);
   const restoreEditionPosition = window.restorePosition;
   const captureEditionPosition = window.capturePosition;
+  const resetEditionPosition = window.toTop;
   const panels = useMemo(() => catalog.all.length ? Array.from({ length: end - start }, (_, i) => { const index = start + i; return { index, panel: panelAt(index) }; }) : [], [catalog, end, start, panelAt]);
   useGalleryMotion(surface);
 
@@ -85,9 +86,11 @@ export function Gallery({ posts, locale }: { posts: HomePost[]; locale: Locale }
       const pathname = locale === "en" ? "/home-v4" : "/en/home-v4";
       try { sessionStorage.setItem("jhow-v4-locale-scroll", JSON.stringify({ pathname, y: scrollY, anchor: captureEditionPosition() })); } catch { /* Storage unavailable. */ }
     };
+    const top = () => resetEditionPosition();
     globalThis.addEventListener("identity-locale", save);
-    return () => globalThis.removeEventListener("identity-locale", save);
-  }, [locale, captureEditionPosition]);
+    globalThis.addEventListener("identity-top", top);
+    return () => { globalThis.removeEventListener("identity-locale", save); globalThis.removeEventListener("identity-top", top); };
+  }, [locale, captureEditionPosition, resetEditionPosition]);
 
   function renderPanel(panel: ReturnType<typeof planPanel>, id: number) {
     return <div className={styles.leaf} data-opening={id < 0} data-leaf={id} style={{ height: window.heightAt(id) ?? panel.height }}>

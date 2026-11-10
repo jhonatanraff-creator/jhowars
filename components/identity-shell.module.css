@@ -6,12 +6,13 @@
 .desktop a::after { content:""; position:absolute; bottom:7px; left:0; right:0; height:1px; background:currentColor; transform:scaleX(0); transform-origin:left; transition:transform .3s; }
 .desktop a:is(:hover,:focus-visible,[aria-current])::after { transform:scaleX(1); }
 .shell .mobileToggle { display:none; }
-.mascot { position:absolute; left:50vw; top:50%; translate:-50% -50%; width:39px; height:44px; display:grid; place-items:center; }
+.mascot { position:absolute; left:var(--identity-center,50vw); top:50%; translate:-50% -50%; width:39px; height:44px; display:grid; place-items:center; }
 .mascot svg { width:100%; height:100%; transition:transform .35s cubic-bezier(.19,.77,.23,1); }
 .mascot:is(:hover,:focus-visible) svg { transform:translateY(-2px) rotate(-4deg); }
 .shell[data-theme="dark"] .mascot svg path[fill="#030506"] { fill:var(--ink); }
 .mobileMenu { z-index:3; }
 .content { padding-top:calc(var(--head) + 24px); padding-bottom:calc(var(--imprint) + 40px); min-height:100svh; font-family:var(--v4-type); }
+.content :global(.page-shell),.content :global(.page-shell *) { --paper:inherit; --ink:inherit; --paper-2:inherit; }
 .content :global(.page-shell) { color:var(--ink); background:var(--paper); }
 .content :global(.tile-image),.content :global(.detail-cover),.content :global(.detail-gallery figure),.content :global(.project-block-figure),.content :global(.project-block-image),.content :global(.project-media-block video) { background:var(--paper); }
 .content :global(h1),.content :global(h2),.content :global(h3),.content :global(p),.content :global(button),.content :global(a) { font-family:var(--v4-type); }

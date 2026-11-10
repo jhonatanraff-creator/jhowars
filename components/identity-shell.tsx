@@ -35,6 +35,11 @@ function EditorialShell({children,path,settings}:{children:React.ReactNode;path:
   const button=useRef<HTMLButtonElement>(null);
   const nav=useRef<HTMLElement>(null);
   const previousPath=useRef(path);
+  useEffect(()=>{
+    const align=()=>root.current?.style.setProperty('--identity-center',`${innerWidth/2}px`);
+    align();addEventListener('resize',align);
+    return()=>removeEventListener('resize',align);
+  },[]);
   const links=[{href:en?'/en/projects':'/projetos',label:en?'Projects':'Projetos'}, {href:en?'/en/about':'/sobre',label:en?'About':'Sobre'}, {href:en?'/en/contact':'/contato',label:en?'Contact':'Contato'}];
   const languagePath=(locale:Locale)=>isHome ? locale==='en'?'/en/home-v4':'/home-v4' : path==='/contato'||path==='/en/contact' ? locale==='en'?'/en/contact':'/contato' : counterpartPath(path,locale);
   useEffect(()=>{document.documentElement.dataset.identityTheme=theme.dark?'dark':'light';},[theme.dark]);
@@ -59,14 +64,14 @@ function EditorialShell({children,path,settings}:{children:React.ReactNode;path:
     <header className={`${v.header} ${s.header}`} data-v4-header>
       <button ref={button} className={`${v.menuButton} ${s.mobileToggle}`} aria-label={open?(en?'Close menu':'Fechar menu'):(en?'Open menu':'Abrir menu')} aria-expanded={open} aria-controls="identity-mobile-menu" onClick={()=>setOpen(!open)}><i/><i/><i/></button>
       <nav className={s.desktop} aria-label={en?'Main navigation':'Navegação principal'}>{links.map(link=><Link key={link.href} href={link.href} aria-current={path===link.href||path.startsWith(link.href+'/')?'page':undefined}>{link.label}</Link>)}</nav>
-      <Link href={home} className={s.mascot} aria-label={en?'Jhow.ars — home':'Jhow.ars — início'}><JhowIsotype/></Link>
+      <Link href={home} onClick={event=>{if(isHome){event.preventDefault();dispatchEvent(new Event("identity-top"));}}} className={s.mascot} aria-label={en?'Jhow.ars — home':'Jhow.ars — início'}><JhowIsotype/></Link>
       <div className={v.controls}><Link href={languagePath('pt')} scroll={!isHome} onClick={()=>{if(isHome)dispatchEvent(new Event('identity-locale'));}} aria-current={!en?'page':undefined}>PT</Link><Link href={languagePath('en')} scroll={!isHome} onClick={()=>{if(isHome)dispatchEvent(new Event('identity-locale'));}} aria-current={en?'page':undefined}>EN</Link><button className={v.theme} onClick={theme.toggle} aria-pressed={theme.dark} aria-label={theme.dark?(en?'Switch to light theme':'Ativar tema claro'):(en?'Switch to dark theme':'Ativar tema escuro')}><span/></button></div>
       <div className={v.scrim} data-open={open} onClick={()=>{setOpen(false);button.current?.focus();}}/>
       <nav ref={nav} id="identity-mobile-menu" className={`${v.menu} ${s.mobileMenu}`} data-open={open} inert={!open} aria-label={en?'Mobile navigation':'Navegação mobile'}>{links.map(link=><Link key={link.href} href={link.href} aria-current={path===link.href||path.startsWith(link.href+'/')?'page':undefined} onClick={()=>setOpen(false)}>{link.label}</Link>)}</nav>
     </header>
     <main className={isHome?s.home:s.content}>{children}</main>
     <footer className={v.imprint} data-v4-footer><div className={v.imprintInner}>
-      <Link className={v.isotype} href={home} aria-label={en?'Home':'Início'}><Image src="/brand/home-v4/isotipo.svg" width={556} height={598} alt=""/></Link>
+      <Link className={v.isotype} href={home} onClick={event=>{if(isHome){event.preventDefault();dispatchEvent(new Event("identity-top"));}}} aria-label={en?'Home':'Início'}><Image src="/brand/home-v4/isotipo.svg" width={556} height={598} alt=""/></Link>
       <a className={v.footerContact} href={`mailto:${settings?.email||'jhow@jhowars.com'}`}>{settings?.email||'jhow@jhowars.com'}</a>
       <span className={v.footerPlace}>{en?'Based in Brazil':'Brasil'}</span><span className={v.footerAvailability}>{en?'Available for collaborations, partnerships and creative projects':'Disponível para: colaborações, parcerias e projetos com identidade autoral'}</span>
       <nav className={v.footerSocial} aria-label={en?'Social media':'Redes sociais'}>{(['instagram','behance','linkedin'] as const).map(kind=>{const href=settings?.[kind]||fallbackSiteSettings[kind];return href?<a key={kind} href={href} target="_blank" rel="noopener noreferrer" aria-label={kind==='linkedin'?'LinkedIn':kind==='behance'?'Behance':'Instagram'}><SocialIcon kind={kind}/></a>:null;})}</nav><span className={v.footerCredit}>© 2026 Jhow.ars</span>

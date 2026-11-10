@@ -19,8 +19,7 @@ const nextConfig: NextConfig = {
       { source: "/posters-2024-experimental-print-and-illustration", destination: "/projetos/posters-2024-experimental-print-and-illustration", permanent: true },
       { source: "/veja-saude-editorial-illustration", destination: "/projetos/veja-saude-editorial-illustration", permanent: true },
       { source: "/about", destination: "/sobre", permanent: true },
-      { source: "/contact", destination: "/sobre", permanent: true },
-      { source: "/contato", destination: "/sobre", permanent: true },
+      { source: "/contact", destination: "/contato", permanent: true },
     ];
   },
 };
