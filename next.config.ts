@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  outputFileTracingIncludes: { "/*": ["./public/brand/current/logo-nova.svg"] },
   images: {
     formats: ["image/avif", "image/webp"],
     qualities: [75, 90],
