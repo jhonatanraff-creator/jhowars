@@ -13,7 +13,7 @@
   animation: internal-label-in .55s cubic-bezier(.2,.72,.25,1) both;
 }
 
-.title {
+.header .title {
   margin: 0;
   font-family: var(--v4-type), Ondo, sans-serif;
   font-size: clamp(54px, 7vw, 110px);
