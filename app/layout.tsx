@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { SiteHeader } from "@/components/site-header";
-import { Footer } from "@/components/footer";
+import { IdentityShell } from "@/components/identity-shell";
 import { getSiteSettings } from "@/lib/portfolio";
 import { headers } from "next/headers";
 import type { Locale } from "@/lib/i18n";
@@ -32,5 +31,5 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     getSiteSettings("pt"),
   ]);
   const settingsByLocale = { en: settingsByEn, pt: settingsByPt };
-  return <html lang={locale === "en" ? "en" : "pt-BR"}><body><LocaleDocument /><SiteHeader settings={settings} settingsByLocale={settingsByLocale} /><main>{children}</main><Footer settings={settings} settingsByLocale={settingsByLocale} /></body></html>;
+  return <html lang={locale === "en" ? "en" : "pt-BR"}><body><LocaleDocument /><IdentityShell settings={settings} settingsByLocale={settingsByLocale}>{children}</IdentityShell></body></html>;
 }
